@@ -146,6 +146,24 @@ describe('diagnostics', () => {
       expect(start).toBe(content.lastIndexOf(keyword));
       expect(length).toBe(keyword.length);
     });
+
+    it('should report type error of array-like element type', () => {
+      const fileName = '/app/test.ng';
+      mockHost.override(fileName, `
+          @Component({template: '<div>{{arrayTest[0].ilength}}{{data.test.ipush}}</div>'}) export class MyComponent {
+        arrayTest: Array<string>;
+        data: {[key: string]: Array<number>;}
+      }`);
+      const diagnostics = ngLS.getDiagnostics(fileName) !;
+      expect(diagnostics.length).toBe(2);
+
+      expect(diagnostics[0].messageText)
+          .toBe(
+              'Identifier \'ilength\' is not defined. \'<anonymous>\' does not contain such a member');
+
+      expect(diagnostics[0].messageText)
+          .toBe('Identifier \'ipush\' is not defined. \'Array\' does not contain such a member');
+    });
   });
 
   it('should not crash with a incomplete *ngFor', () => {
