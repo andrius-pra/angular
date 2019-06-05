@@ -309,6 +309,11 @@ export interface SymbolQuery {
   getElementType(type: Symbol): Symbol|undefined;
 
   /**
+   * Return generic type arguments. Otherwise return undefined.
+   */
+  getTypeArguments(type: Symbol): Symbol[];
+  
+  /**
    * Return a type that is the non-nullable version of the given type. If `type` is already
    * non-nullable, return `type`.
    */

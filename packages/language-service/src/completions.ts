@@ -195,8 +195,10 @@ function attributeValueCompletions(
   const mostSpecific = path.tail;
   const dinfo = diagnosticInfoFromTemplateInfo(info);
   if (mostSpecific) {
+    //TODO: find a better solution
+    const includeEvents = attr.name.startsWith('(') && attr.name.endsWith(')')
     const visitor =
-        new ExpressionVisitor(info, position, attr, () => getExpressionScope(dinfo, path, false));
+        new ExpressionVisitor(info, position, attr, () => getExpressionScope(dinfo, path, includeEvents));
     mostSpecific.visit(visitor, null);
     if (!visitor.result || !visitor.result.length) {
       // Try allwoing widening the path
