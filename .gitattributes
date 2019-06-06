@@ -8,5 +8,8 @@
 # API guardian patch must always use LF for tests to work
 *.patch eol=lf
 
+# sh files must always use LF
+*.sh eol=lf
+
 # Must keep Windows line ending to be parsed correctly
 scripts/windows/packages.txt eol=crlf

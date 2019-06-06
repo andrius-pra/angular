@@ -17,7 +17,9 @@ const projectHostMap = new WeakMap<tss.server.Project, TypeScriptServiceHost>();
 
 export function getExternalFiles(project: tss.server.Project): string[]|undefined {
   const host = projectHostMap.get(project);
-  if (host) {
+  const rootFiles = (project as any).getRootFilesMap();
+
+  if (host && rootFiles && Array.from(rootFiles).length) {
     const externalFiles = host.getTemplateReferences();
     return externalFiles;
   }
@@ -51,7 +53,7 @@ function diagnosticMessageToDiagnosticMessageText(message: string | DiagnosticMe
   return diagnosticChainToDiagnosticChain(message);
 }
 
-function diagnosticToDiagnostic(d: Diagnostic, file: ts.SourceFile): ts.Diagnostic {
+function diagnosticToDiagnostic(d: Diagnostic, file: ts.SourceFile | undefined): ts.Diagnostic {
   const result = {
     file,
     start: d.span.start,
@@ -147,9 +149,7 @@ export function create(info: tss.server.PluginCreateInfo): ts.LanguageService {
       const ours = ls.getDiagnostics(fileName);
       if (ours && ours.length) {
         const file = oldLS.getProgram() !.getSourceFile(fileName);
-        if (file) {
-          base.push.apply(base, ours.map(d => diagnosticToDiagnostic(d, file)));
-        }
+        base.push.apply(base, ours.map(d => diagnosticToDiagnostic(d, file)));
       }
     });
 
