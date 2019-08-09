@@ -549,6 +549,27 @@ describe('completions', () => {
       expect(completion.replacementSpan).toEqual({start: location.start - 5, length: 5});
     });
   });
+
+  describe('custom event binding', () => {
+    it('should be able to get completions for event name', () => {
+      const marker = mockHost.getLocationMarkerFor(PARSING_CASES, 'custom-event-name');
+      const completions = ngLS.getCompletionsAt(PARSING_CASES, marker.start);
+      expectContain(completions, CompletionKind.ATTRIBUTE, ['(deleteRequest)']);
+    });
+
+    it('should be able to get completions for $event variable', () => {
+      const marker = mockHost.getLocationMarkerFor(PARSING_CASES, 'custom-event-binding');
+      const completions = ngLS.getCompletionsAt(PARSING_CASES, marker.start);
+      expectContain(completions, CompletionKind.VARIABLE, ['$event']);
+    });
+
+    it('should be able to get completions for custom event members', () => {
+      const marker = mockHost.getLocationMarkerFor(PARSING_CASES, 'custom-event-members');
+      const completions = ngLS.getCompletionsAt(PARSING_CASES, marker.start);
+      expectContain(completions, CompletionKind.PROPERTY, ['name', 'age', 'street']);
+    });
+  });
+
 });
 
 function expectContain(
