@@ -200,8 +200,9 @@ function attributeValueCompletions(
     return [];
   }
   const dinfo = diagnosticInfoFromTemplateInfo(info);
-  const visitor =
-      new ExpressionVisitor(info, position, attr, () => getExpressionScope(dinfo, path, false));
+  const includeEvents = !!path.first(BoundEventAst);
+  const visitor = new ExpressionVisitor(
+      info, position, attr, () => getExpressionScope(dinfo, path, includeEvents));
   path.tail.visit(visitor, null);
   if (!visitor.result || !visitor.result.length) {
     // Try allwoing widening the path
