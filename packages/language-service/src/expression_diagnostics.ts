@@ -172,14 +172,42 @@ function refinedVariableType(
   return query.getBuiltinType(BuiltinType.Any);
 }
 
-function getEventDeclaration(info: DiagnosticTemplateInfo, includeEvent?: boolean) {
+function getEventDeclaration(
+    info: DiagnosticTemplateInfo, path: TemplateAstPath, includeEvent?: boolean) {
   let result: SymbolDeclaration[] = [];
   if (includeEvent) {
-    // TODO: Determine the type of the event parameter based on the Observable<T> or EventEmitter<T>
-    // of the event.
-    result = [{name: '$event', kind: 'variable', type: info.query.getBuiltinType(BuiltinType.Any)}];
+    let eventType = info.query.getBuiltinType(BuiltinType.Any);
+    if (path.tail instanceof BoundEventAst) {
+      const element = path.first(ElementAst);
+      if (element) {
+        for (const directive of element.directives) {
+          const fieldName = getFieldName(directive.directive.outputs, path.tail.name);
+          if (fieldName) {
+            const classSymbol = info.query.getTypeSymbol(directive.directive.type.reference);
+            if (classSymbol) {
+              const member = classSymbol.members().get(fieldName);
+              if (member && member.type) {
+                const typeArguments = info.query.getTypeArguments(member.type);
+                if (typeArguments && typeArguments.length) {
+                  eventType = typeArguments[0];
+                }
+              }
+            }
+          }
+        }
+      }
+      result = [{name: '$event', kind: 'variable', type: eventType}];
+    }
   }
   return result;
+}
+
+function getFieldName(obj: {[key: string]: string}, bindingName: string): string|undefined {
+  for (const name of Object.keys(obj)) {
+    if (obj[name] === bindingName) {
+      return name;
+    }
+  }
 }
 
 export function getExpressionScope(
@@ -187,7 +215,7 @@ export function getExpressionScope(
   let result = info.members;
   const references = getReferences(info);
   const variables = getVarDeclarations(info, path);
-  const events = getEventDeclaration(info, includeEvent);
+  const events = getEventDeclaration(info, path, includeEvent);
   if (references.length || variables.length || events.length) {
     const referenceTable = info.query.createSymbolTable(references);
     const variableTable = info.query.createSymbolTable(variables);
