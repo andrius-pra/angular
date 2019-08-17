@@ -195,6 +195,19 @@ describe('completions', () => {
     expectContains(fileName, 'numberMarker', '[inputAlias]', '(outputAlias)');
   });
 
+  it('should be able to get completions in event binding', () => {
+    const fileName = mockHost.addCode(`
+      @Component({
+        selector: 'foo-component',
+        template: \`
+          <div number-model (outputAlias)="$event.~{numberMarker}"></div>
+        \`,
+      })
+      export class FooComponent { }
+    `);
+    expectContains(fileName, 'numberMarker', 'toExponential', 'toFixed', 'toPrecision', 'valueOf');
+  });
+  
   function expectContains(fileName: string, locationMarker: string, ...names: string[]) {
     let location = mockHost.getMarkerLocations(fileName) ![locationMarker];
     if (location == null) {
