@@ -64,6 +64,14 @@ describe('completions', () => {
     expectContains(fileName, 'name', 'name', 'street');
   });
 
+  it('should be able to infer the type of array-like element type', () => {
+    addCode(
+        `@Component({template: '<div>{{ivan.test.~{push}push}}</div>'}) export class MyComponent {
+        ivan: {[key: string]: {propOne: string; propTwo: string;}}
+      }`,
+        () => { contains('/app/app.component.ts', 'push', 'propOne', 'propTwo'); });
+  });
+
   it('should be able to infer the type of a ngForOf with an async pipe', () => {
     const fileName = mockHost.addCode(`
       interface Person {
