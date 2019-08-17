@@ -28,6 +28,7 @@ const hiddenHtmlElements = {
   link: true,
 };
 
+const angularPseudoElements = ['ng-container', 'ng-content', 'ng-template'];
 export function getTemplateCompletions(
     templateInfo: AstResult, position: number): ts.CompletionEntry[] {
   let result: ts.CompletionEntry[] = [];
@@ -218,7 +219,7 @@ function attributeValueCompletions(
 }
 
 function elementCompletions(info: AstResult, path: AstPath<HtmlAst>): ts.CompletionEntry[] {
-  const htmlNames = elementNames().filter(name => !(name in hiddenHtmlElements));
+  const htmlNames = elementNames().concat(angularPseudoElements).filter(name => !(name in hiddenHtmlElements));
 
   // Collect the elements referenced by the selectors
   const directiveElements = getSelectors(info)

@@ -35,6 +35,9 @@ describe('completions', () => {
   it('should be able to return element diretives',
      () => { expectContains('/app/test.ng', 'empty', 'my-app'); });
 
+  it('should be able to return angular pseudo elements',
+     () => { contains('/app/test.ng', 'empty', 'ng-container', 'ng-content', 'ng-template'); });
+
   it('should be able to return h1 attributes',
      () => { expectContains('/app/test.ng', 'h1-after-space', 'id', 'dir', 'lang', 'onclick'); });
 
