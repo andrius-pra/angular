@@ -62,6 +62,7 @@ export interface LexerRange {
  * Options that modify how the text is tokenized.
  */
 export interface TokenizeOptions {
+  preserveLineEndings?: boolean;
   /** Whether to tokenize ICU messages (considered as text nodes when false). */
   tokenizeExpansionForms?: boolean;
   /** How to tokenize interpolation markers. */
@@ -128,6 +129,7 @@ class _ControlFlowError {
 class _Tokenizer {
   private _cursor: CharacterCursor;
   private _tokenizeIcu: boolean;
+  private _preserveLineEndings: boolean;
   private _interpolationConfig: InterpolationConfig;
   private _leadingTriviaCodePoints: number[]|undefined;
   private _currentTokenStart: CharacterCursor|null = null;
@@ -146,6 +148,7 @@ class _Tokenizer {
       _file: ParseSourceFile, private _getTagDefinition: (tagName: string) => TagDefinition,
       options: TokenizeOptions) {
     this._tokenizeIcu = options.tokenizeExpansionForms || false;
+    this._preserveLineEndings = options.preserveLineEndings || false;
     this._interpolationConfig = options.interpolationConfig || DEFAULT_INTERPOLATION_CONFIG;
     this._leadingTriviaCodePoints =
         options.leadingTriviaChars && options.leadingTriviaChars.map(c => c.codePointAt(0) || 0);
@@ -161,6 +164,10 @@ class _Tokenizer {
   }
 
   private _processCarriageReturns(content: string): string {
+    if(this._preserveLineEndings){
+      return content;
+    }
+
     // http://www.w3.org/TR/html5/syntax.html#preprocessing-the-input-stream
     // In order to keep the original position in the source, we can not
     // pre-process it.
