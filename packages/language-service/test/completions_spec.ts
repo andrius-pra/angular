@@ -65,7 +65,7 @@ describe('completions', () => {
   });
 
   it('should be able to infer the type of array-like element type', () => {
-    addCode(
+    addCodeAndCallback(
         `@Component({template: '<div>{{ivan.test.~{push}push}}</div>'}) export class MyComponent {
         ivan: {[key: string]: {propOne: string; propTwo: string;}}
       }`,

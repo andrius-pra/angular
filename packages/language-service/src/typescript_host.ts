@@ -185,7 +185,11 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
               this.reflector.componentModuleUrl(directive.reference),
               metadata.template.templateUrl);
           this.fileToComponent.set(templateName, directive.reference);
-          this.templateReferences.push(templateName);
+          if(this.tsLsHost.fileExists && this.tsLsHost.fileExists(templateName)){
+            this.templateReferences.push(templateName);
+          }else if(!this.tsLsHost.fileExists){
+            this.templateReferences.push(templateName);
+          }
         }
       }
     }
@@ -512,6 +516,7 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
           );
       const htmlResult = htmlParser.parse(template.source, fileName, {
         tokenizeExpansionForms: true,
+        preserveLineEndings: true
       });
       const {directives, pipes, schemas} = this.getModuleMetadataForDirective(classSymbol);
       const parseResult =
