@@ -23,6 +23,14 @@ import {TypeScriptServiceHost} from './typescript_host';
 
 const projectHostMap = new WeakMap<tss.server.Project, TypeScriptServiceHost>();
 
+function tryCall<T>(callback: () => T): T | undefined {
+  try {
+      return callback();
+  } catch (e) {
+      return undefined;
+  }
+}
+
 /**
  * Return the external templates discovered through processing all NgModules in
  * the specified `project`.
@@ -74,7 +82,7 @@ export function create(info: tss.server.PluginCreateInfo): tss.LanguageService {
       fileName: string, position: number,
       options: tss.GetCompletionsAtPositionOptions | undefined) {
     if (!angularOnly) {
-      const results = tsLS.getCompletionsAtPosition(fileName, position, options);
+      const results = tryCall(() => tsLS.getCompletionsAtPosition(fileName, position, options));
       if (results && results.entries.length) {
         // If TS could answer the query, then return results immediately.
         return results;
@@ -85,7 +93,7 @@ export function create(info: tss.server.PluginCreateInfo): tss.LanguageService {
 
   function getQuickInfoAtPosition(fileName: string, position: number): tss.QuickInfo|undefined {
     if (!angularOnly) {
-      const result = tsLS.getQuickInfoAtPosition(fileName, position);
+      const result = tryCall(() => tsLS.getQuickInfoAtPosition(fileName, position));
       if (result) {
         // If TS could answer the query, then return results immediately.
         return result;
@@ -97,7 +105,7 @@ export function create(info: tss.server.PluginCreateInfo): tss.LanguageService {
   function getSemanticDiagnostics(fileName: string): tss.Diagnostic[] {
     const results: tss.Diagnostic[] = [];
     if (!angularOnly) {
-      results.push(...tsLS.getSemanticDiagnostics(fileName));
+      results.push(...tryCall(() => tsLS.getSemanticDiagnostics(fileName)) || []);
     }
     // For semantic diagnostics we need to combine both TS + Angular results
     results.push(...ngLS.getDiagnostics(fileName));
@@ -107,7 +115,7 @@ export function create(info: tss.server.PluginCreateInfo): tss.LanguageService {
   function getDefinitionAtPosition(
       fileName: string, position: number): ReadonlyArray<tss.DefinitionInfo>|undefined {
     if (!angularOnly) {
-      const results = tsLS.getDefinitionAtPosition(fileName, position);
+      const results = tryCall(() => tsLS.getDefinitionAtPosition(fileName, position));
       if (results) {
         // If TS could answer the query, then return results immediately.
         return results;
@@ -123,7 +131,7 @@ export function create(info: tss.server.PluginCreateInfo): tss.LanguageService {
   function getDefinitionAndBoundSpan(
       fileName: string, position: number): tss.DefinitionInfoAndBoundSpan|undefined {
     if (!angularOnly) {
-      const result = tsLS.getDefinitionAndBoundSpan(fileName, position);
+      const result = tryCall(() => tsLS.getDefinitionAndBoundSpan(fileName, position));
       if (result) {
         // If TS could answer the query, then return results immediately.
         return result;
