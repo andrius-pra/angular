@@ -15,7 +15,7 @@ import {AstResult} from './common';
 import {createLanguageService} from './language_service';
 import {ReflectorHost} from './reflector_host';
 import {ExternalTemplate, InlineTemplate, getClassDeclFromDecoratorProp, getPropertyAssignmentFromValue} from './template';
-import {Declaration, DeclarationError, Diagnostic, DiagnosticMessageChain, LanguageService, LanguageServiceHost, Span, TemplateSource} from './types';
+import {Declaration, DeclarationError, DiagnosticMessageChain, LanguageService, LanguageServiceHost, Span, TemplateSource} from './types';
 import {findTightestNode, getDirectiveClassLike} from './utils';
 
 
@@ -23,7 +23,7 @@ import {findTightestNode, getDirectiveClassLike} from './utils';
  * Create a `LanguageServiceHost`
  */
 export function createLanguageServiceFromTypescript(
-    host: tss.LanguageServiceHost, service: tss.LanguageService): LanguageService {
+    host: ts.LanguageServiceHost, service: ts.LanguageService): LanguageService {
   const ngHost = new TypeScriptServiceHost(host, service);
   const ngServer = createLanguageService(ngHost);
   return ngServer;
@@ -64,8 +64,7 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
   private readonly collectedErrors = new Map<string, any[]>();
   private readonly fileVersions = new Map<string, string>();
 
-  private lastProgram: tss.Program|undefined = undefined;
-  private templateReferences: string[] = [];
+  private lastProgram: ts.Program|undefined = undefined;
   private analyzedModules: NgAnalyzedModules = {
     files: [],
     ngModuleByPipeOrDirective: new Map(),
@@ -73,7 +72,7 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
   };
 
   constructor(
-      readonly tsLsHost: tss.LanguageServiceHost, private readonly tsLS: tss.LanguageService) {
+      readonly tsLsHost: ts.LanguageServiceHost, private readonly tsLS: ts.LanguageService) {
     this.summaryResolver = new AotSummaryResolver(
         {
           loadSummary(filePath: string) { return null; },
@@ -144,11 +143,6 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
     return this.resolver.getReflector() as StaticReflector;
   }
 
-  getTemplateReferences(): string[] {
-    this.getAnalyzedModules();
-    return [...this.templateReferences];
-  }
-
   /**
    * Checks whether the program has changed and returns all analyzed modules.
    * If program has changed, invalidate all caches and update fileToComponent
@@ -166,7 +160,6 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
     }
 
     // Invalidate caches
-    this.templateReferences = [];
     this.fileToComponent.clear();
     this.collectedErrors.clear();
     this.resolver.clearCache();
@@ -186,11 +179,14 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
               this.reflector.componentModuleUrl(directive.reference),
               metadata.template.templateUrl);
           this.fileToComponent.set(templateName, directive.reference);
+<<<<<<< HEAD
+=======
           if (this.tsLsHost.fileExists && this.tsLsHost.fileExists(templateName)) {
             this.templateReferences.push(templateName);
           } else if (!!this.tsLsHost.getScriptSnapshot(templateName)) {
             this.templateReferences.push(templateName);
           }
+>>>>>>> fix(language-service): fix for external templates in typescript plugin.
         }
       }
     }
@@ -261,17 +257,17 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
     const results: TemplateSource[] = [];
     if (fileName.endsWith('.ts')) {
       // Find every template string in the file
-      const visit = (child: tss.Node) => {
+      const visit = (child: ts.Node) => {
         const template = this.getInternalTemplate(child);
         if (template) {
           results.push(template);
         } else {
-          tss.forEachChild(child, visit);
+          ts.forEachChild(child, visit);
         }
       };
       const sourceFile = this.getSourceFile(fileName);
       if (sourceFile) {
-        tss.forEachChild(sourceFile, visit);
+        ts.forEachChild(sourceFile, visit);
       }
     } else {
       const template = this.getExternalTemplate(fileName);
@@ -298,7 +294,7 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
       return [];
     }
     const results: Declaration[] = [];
-    const visit = (child: tss.Node) => {
+    const visit = (child: ts.Node) => {
       const candidate = getDirectiveClassLike(child);
       if (candidate) {
         const {decoratorId, classDecl} = candidate;
@@ -323,19 +319,19 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
         child.forEachChild(visit);
       }
     };
-    tss.forEachChild(sourceFile, visit);
+    ts.forEachChild(sourceFile, visit);
 
     return results;
   }
 
-  getSourceFile(fileName: string): tss.SourceFile|undefined {
+  getSourceFile(fileName: string): ts.SourceFile|undefined {
     if (!fileName.endsWith('.ts')) {
       throw new Error(`Non-TS source file requested: ${fileName}`);
     }
     return this.program.getSourceFile(fileName);
   }
 
-  get program(): tss.Program {
+  get program(): ts.Program {
     const program = this.tsLS.getProgram();
     if (!program) {
       // Program is very very unlikely to be undefined.
@@ -357,8 +353,8 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
    *
    * @param node Potential template node
    */
-  private getInternalTemplate(node: tss.Node): TemplateSource|undefined {
-    if (!tss.isStringLiteralLike(node)) {
+  private getInternalTemplate(node: ts.Node): TemplateSource|undefined {
+    if (!ts.isStringLiteralLike(node)) {
       return;
     }
     const tmplAsgn = getPropertyAssignmentFromValue(node);
@@ -398,7 +394,7 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
     // TODO: This only considers top-level class declarations in a source file.
     // This would not find a class declaration in a namespace, for example.
     const classDecl = sourceFile.forEachChild((child) => {
-      if (tss.isClassDeclaration(child) && child.name && child.name.text === classSymbol.name) {
+      if (ts.isClassDeclaration(child) && child.name && child.name.text === classSymbol.name) {
         return child;
       }
     });
@@ -419,7 +415,7 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
     }
   }
 
-  private getCollectedErrors(defaultSpan: Span, sourceFile: tss.SourceFile): DeclarationError[] {
+  private getCollectedErrors(defaultSpan: Span, sourceFile: ts.SourceFile): DeclarationError[] {
     const errors = this.collectedErrors.get(sourceFile.fileName);
     if (!errors) {
       return [];
@@ -592,21 +588,21 @@ function findSuitableDefaultModule(modules: NgAnalyzedModules): CompileNgModuleM
   return result;
 }
 
-function spanOf(node: tss.Node): Span {
+function spanOf(node: ts.Node): Span {
   return {start: node.getStart(), end: node.getEnd()};
 }
 
-function spanAt(sourceFile: tss.SourceFile, line: number, column: number): Span|undefined {
+function spanAt(sourceFile: ts.SourceFile, line: number, column: number): Span|undefined {
   if (line != null && column != null) {
-    const position = tss.getPositionOfLineAndCharacter(sourceFile, line, column);
-    const findChild = function findChild(node: tss.Node): tss.Node | undefined {
-      if (node.kind > tss.SyntaxKind.LastToken && node.pos <= position && node.end > position) {
-        const betterNode = tss.forEachChild(node, findChild);
+    const position = ts.getPositionOfLineAndCharacter(sourceFile, line, column);
+    const findChild = function findChild(node: ts.Node): ts.Node | undefined {
+      if (node.kind > ts.SyntaxKind.LastToken && node.pos <= position && node.end > position) {
+        const betterNode = ts.forEachChild(node, findChild);
         return betterNode || node;
       }
     };
 
-    const node = tss.forEachChild(sourceFile, findChild);
+    const node = ts.forEachChild(sourceFile, findChild);
     if (node) {
       return {start: node.getStart(), end: node.getEnd()};
     }
