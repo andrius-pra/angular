@@ -43,14 +43,16 @@ export class Parser {
                     input, location, absoluteOffset, tokens, sourceToLex.length, true, this.errors,
                     input.length - sourceToLex.length)
                     .parseChain();
-    return new ASTWithSource(ast, input, location, absoluteOffset, this.errors);
+    // using .splice(0) to remove duplicated error messages in all interpolation expressions
+    return new ASTWithSource(ast, input, location, absoluteOffset, this.errors.splice(0));
   }
 
   parseBinding(
       input: string, location: any, absoluteOffset: number,
       interpolationConfig: InterpolationConfig = DEFAULT_INTERPOLATION_CONFIG): ASTWithSource {
     const ast = this._parseBindingAst(input, location, absoluteOffset, interpolationConfig);
-    return new ASTWithSource(ast, input, location, absoluteOffset, this.errors);
+    // using .splice(0) to remove duplicated error messages in all interpolation expressions
+    return new ASTWithSource(ast, input, location, absoluteOffset, this.errors.splice(0));
   }
 
   parseSimpleBinding(
@@ -62,7 +64,8 @@ export class Parser {
       this._reportError(
           `Host binding expression cannot contain ${errors.join(' ')}`, input, location);
     }
-    return new ASTWithSource(ast, input, location, absoluteOffset, this.errors);
+    // using .splice(0) to remove duplicated error messages in all interpolation expressions
+    return new ASTWithSource(ast, input, location, absoluteOffset, this.errors.splice(0));
   }
 
   private _reportError(message: string, input: string, errLocation: string, ctxLocation?: any) {
@@ -105,7 +108,10 @@ export class Parser {
       TemplateBindingParseResult {
     const tokens = this._lexer.tokenize(tplValue);
     return new _ParseAST(
-               tplValue, location, absoluteOffset, tokens, tplValue.length, false, this.errors, 0)
+               // using .splice(0) to remove duplicated error messages in all interpolation
+               // expressions
+               tplValue, location, absoluteOffset, tokens, tplValue.length, false,
+               this.errors.splice(0), 0)
         .parseTemplateBindings(tplKey);
   }
 
@@ -131,7 +137,7 @@ export class Parser {
     const span = new ParseSpan(0, input == null ? 0 : input.length);
     return new ASTWithSource(
         new Interpolation(span, span.toAbsolute(absoluteOffset), split.strings, expressions), input,
-        location, absoluteOffset, this.errors);
+        location, absoluteOffset, this.errors.splice(0));
   }
 
   splitInterpolation(
@@ -174,7 +180,7 @@ export class Parser {
     const span = new ParseSpan(0, input == null ? 0 : input.length);
     return new ASTWithSource(
         new LiteralPrimitive(span, span.toAbsolute(absoluteOffset), input), input, location,
-        absoluteOffset, this.errors);
+        absoluteOffset, this.errors.splice(0));
   }
 
   private _stripComments(input: string): string {
@@ -751,8 +757,8 @@ export class _ParseAST {
         const start = this.inputIndex;
         const ast = this.parsePipe();
         const source = this.input.substring(start - this.offset, this.inputIndex - this.offset);
-        expression =
-            new ASTWithSource(ast, source, this.location, this.absoluteOffset, this.errors);
+        expression = new ASTWithSource(
+            ast, source, this.location, this.absoluteOffset, this.errors.splice(0));
       }
 
       bindings.push(new TemplateBinding(
