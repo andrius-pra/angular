@@ -144,7 +144,7 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
     this.templateReferences = [];
     this.fileToComponent.clear();
     this.collectedErrors.clear();
-    this.resolver = this.createMetadataResolver();
+    this.resolver.clearCache();
 
     const analyzeHost = {isSourceFile(filePath: string) { return true; }};
     const programFiles = this.program.getSourceFiles().map(sf => sf.fileName);
@@ -280,9 +280,11 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
       seen.add(fileName);
       const version = this.tsLsHost.getScriptVersion(fileName);
       const lastVersion = this.fileVersions.get(fileName);
-      if (version !== lastVersion) {
-        this.fileVersions.set(fileName, version);
-        this.staticSymbolResolver.invalidateFile(fileName);
+      this.fileVersions.set(fileName, version);
+      // Should not invalidate file on the first encounter
+      if (lastVersion !== undefined && version !== lastVersion) {
+        const symbols = this.staticSymbolResolver.invalidateFile(fileName);
+        this.reflector.invalidateSymbols(symbols);
       }
     }
 
@@ -290,7 +292,8 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
     const missing = Array.from(this.fileVersions.keys()).filter(f => !seen.has(f));
     missing.forEach(f => {
       this.fileVersions.delete(f);
-      this.staticSymbolResolver.invalidateFile(f);
+      const symbols = this.staticSymbolResolver.invalidateFile(f);
+      this.reflector.invalidateSymbols(symbols);
     });
 
     this.lastProgram = program;

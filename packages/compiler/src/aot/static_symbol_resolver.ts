@@ -67,7 +67,7 @@ export class StaticSymbolResolver {
   // Note: this will only contain StaticSymbols without members!
   private importAs = new Map<StaticSymbol, StaticSymbol>();
   private symbolResourcePaths = new Map<StaticSymbol, string>();
-  private symbolFromFile = new Map<string, StaticSymbol[]>();
+  private symbolFromFile = new Map<string, Set<StaticSymbol>>();
   private knownFileNameToModuleNames = new Map<string, string>();
 
   constructor(
@@ -176,22 +176,25 @@ export class StaticSymbolResolver {
   }
 
   /**
-   * Invalidate all information derived from the given file.
+   * Invalidate all information derived from the given file and return the
+   * static symbols contained in the file.
    *
    * @param fileName the file to invalidate
    */
-  invalidateFile(fileName: string) {
+  invalidateFile(fileName: string): StaticSymbol[] {
     this.metadataCache.delete(fileName);
     this.resolvedFilePaths.delete(fileName);
     const symbols = this.symbolFromFile.get(fileName);
-    if (symbols) {
-      this.symbolFromFile.delete(fileName);
-      for (const symbol of symbols) {
-        this.resolvedSymbols.delete(symbol);
-        this.importAs.delete(symbol);
-        this.symbolResourcePaths.delete(symbol);
-      }
+    if (!symbols) {
+      return [];
     }
+    this.symbolFromFile.delete(fileName);
+    for (const symbol of symbols) {
+      this.resolvedSymbols.delete(symbol);
+      this.importAs.delete(symbol);
+      this.symbolResourcePaths.delete(symbol);
+    }
+    return Array.from(symbols);
   }
 
   /** @internal */
@@ -272,14 +275,10 @@ export class StaticSymbolResolver {
     }
     // Note: Some users use libraries that were not compiled with ngc, i.e. they don't
     // have summaries, only .d.ts files, but `summaryResolver.isLibraryFile` returns true.
-    this._createSymbolsOf(filePath);
-    const metadataSymbols: StaticSymbol[] = [];
-    this.resolvedSymbols.forEach((resolvedSymbol) => {
-      if (resolvedSymbol.symbol.filePath === filePath) {
-        metadataSymbols.push(resolvedSymbol.symbol);
-      }
-    });
-    return metadataSymbols;
+    if (!this.symbolFromFile.has(filePath)) {
+      this._createSymbolsOf(filePath);
+    }
+    return Array.from(this.symbolFromFile.get(filePath) || []);
   }
 
   private _createSymbolsOf(filePath: string) {
@@ -365,7 +364,7 @@ export class StaticSymbolResolver {
     }
     resolvedSymbols.forEach(
         (resolvedSymbol) => this.resolvedSymbols.set(resolvedSymbol.symbol, resolvedSymbol));
-    this.symbolFromFile.set(filePath, resolvedSymbols.map(resolvedSymbol => resolvedSymbol.symbol));
+    this.symbolFromFile.set(filePath, new Set(resolvedSymbols.map(({symbol}) => symbol)));
   }
 
   private createResolvedSymbol(
