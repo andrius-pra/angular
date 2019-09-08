@@ -28,6 +28,7 @@ const hiddenHtmlElements = {
   link: true,
 };
 
+const angularPseudoElements = ['ng-container', 'ng-content', 'ng-template'];
 export function getTemplateCompletions(
     templateInfo: AstResult, position: number): ts.CompletionEntry[] {
   let result: ts.CompletionEntry[] = [];
@@ -201,8 +202,8 @@ function attributeValueCompletions(
   }
   const dinfo = diagnosticInfoFromTemplateInfo(info);
   const includeEvents = !!path.first(BoundEventAst);
-  const visitor =
-      new ExpressionVisitor(info, position, attr, () => getExpressionScope(dinfo, path, includeEvents));
+  const visitor = new ExpressionVisitor(
+      info, position, attr, () => getExpressionScope(dinfo, path, includeEvents));
   path.tail.visit(visitor, null);
   if (!visitor.result || !visitor.result.length) {
     // Try allwoing widening the path
@@ -218,7 +219,8 @@ function attributeValueCompletions(
 }
 
 function elementCompletions(info: AstResult, path: AstPath<HtmlAst>): ts.CompletionEntry[] {
-  let htmlNames = elementNames().filter(name => !(name in hiddenHtmlElements));
+  let htmlNames =
+      elementNames().concat(angularPseudoElements).filter(name => !(name in hiddenHtmlElements));
 
   // Collect the elements referenced by the selectors
   let directiveElements = getSelectors(info)
@@ -243,9 +245,15 @@ function elementCompletions(info: AstResult, path: AstPath<HtmlAst>): ts.Complet
       sortText: name,
     };
   });
+  const pseudoElements =
+      angularPseudoElements.map(name => ({
+                                  kind: CompletionKind.COMPONENT as unknown as ts.ScriptElementKind,
+                                  name,
+                                  sortText: name
+                                }));
 
   // Return components and html elements
-  return uniqueByName(htmlElements.concat(components));
+  return uniqueByName([...htmlElements, ...components, ...pseudoElements]);
 }
 
 /**
