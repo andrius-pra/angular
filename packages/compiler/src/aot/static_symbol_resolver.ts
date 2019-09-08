@@ -67,7 +67,7 @@ export class StaticSymbolResolver {
   // Note: this will only contain StaticSymbols without members!
   private importAs = new Map<StaticSymbol, StaticSymbol>();
   private symbolResourcePaths = new Map<StaticSymbol, string>();
-  private symbolFromFile = new Map<string, Set<StaticSymbol>>();
+  private symbolFromFile = new Map<string, StaticSymbol[]>();
   private knownFileNameToModuleNames = new Map<string, string>();
 
   constructor(
@@ -278,7 +278,7 @@ export class StaticSymbolResolver {
     if (!this.symbolFromFile.has(filePath)) {
       this._createSymbolsOf(filePath);
     }
-    return Array.from(this.symbolFromFile.get(filePath) || []);
+    return this.symbolFromFile.get(filePath) || [];
   }
 
   private _createSymbolsOf(filePath: string) {
@@ -364,7 +364,8 @@ export class StaticSymbolResolver {
     }
     resolvedSymbols.forEach(
         (resolvedSymbol) => this.resolvedSymbols.set(resolvedSymbol.symbol, resolvedSymbol));
-    this.symbolFromFile.set(filePath, new Set(resolvedSymbols.map(({symbol}) => symbol)));
+    this.symbolFromFile.set(
+        filePath, Array.from(new Set(resolvedSymbols.map(({symbol}) => symbol))));
   }
 
   private createResolvedSymbol(
