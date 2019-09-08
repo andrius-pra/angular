@@ -202,6 +202,22 @@ export class MyComponent {
         });
   });
 
+  it('should be able to get completions in event binding', () => {
+    addCode(
+        `
+      @Component({
+        selector: 'foo-component',
+        template: \`
+          <div number-model (outputAlias)="$event.~{numberMarker}"></div>
+        \`,
+      })
+      export class FooComponent { }
+    `,
+        (fileName) => {
+          contains(fileName, 'numberMarker', 'toExponential', 'toFixed', 'toPrecision', 'valueOf');
+        });
+  });
+
   function addCode(code: string, cb: (fileName: string, content?: string) => void) {
     const fileName = '/app/app.component.ts';
     const originalContent = mockHost.getFileContent(fileName);
