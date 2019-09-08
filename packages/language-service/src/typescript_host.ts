@@ -161,7 +161,11 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
               this.reflector.componentModuleUrl(directive.reference),
               metadata.template.templateUrl);
           this.fileToComponent.set(templateName, directive.reference);
-          this.templateReferences.push(templateName);
+          if(this.host.fileExists && this.host.fileExists(templateName)){
+            this.templateReferences.push(templateName);
+          }else if(!this.host.fileExists){
+            this.templateReferences.push(templateName);
+          }
         }
       }
     }
