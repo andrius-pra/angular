@@ -183,9 +183,9 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
               this.reflector.componentModuleUrl(directive.reference),
               metadata.template.templateUrl);
           this.fileToComponent.set(templateName, directive.reference);
-          if(this.tsLsHost.fileExists && this.tsLsHost.fileExists(templateName)){
+          if (this.tsLsHost.fileExists && this.tsLsHost.fileExists(templateName)) {
             this.templateReferences.push(templateName);
-          }else if(!this.tsLsHost.fileExists){
+          } else if (!this.tsLsHost.fileExists) {
             this.templateReferences.push(templateName);
           }
         }
@@ -300,6 +300,7 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
 
     // Invalidate file that have changed in the static symbol resolver
     const seen = new Set<string>();
+    let hasVersionChanges = false;
     for (const sourceFile of program.getSourceFiles()) {
       const fileName = sourceFile.fileName;
       seen.add(fileName);
@@ -311,6 +312,9 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
         const symbols = this.staticSymbolResolver.invalidateFile(fileName);
         this.reflector.invalidateSymbols(symbols);
       }
+      if (version !== lastVersion) {
+        hasVersionChanges = true;
+      }
     }
 
     // Remove file versions that are no longer in the program and invalidate them.
@@ -321,7 +325,7 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
       this.reflector.invalidateSymbols(symbols);
     });
 
-    return false;
+    return missing.length === 0 && !hasVersionChanges;
   }
 
   /**

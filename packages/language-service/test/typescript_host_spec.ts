@@ -217,4 +217,14 @@ describe('TypeScriptServiceHost', () => {
     const updatedModules = ngLSHost.getAnalyzedModules();
     expect(updatedModules).not.toEqual(syncModules);
   });
+
+  it('should not clear caches when external template changes', () => {
+    const tsLSHost = new MockTypescriptHost(['/app/main.ts']);
+    const tsLS = ts.createLanguageService(tsLSHost);
+    const ngLSHost = new TypeScriptServiceHost(tsLSHost, tsLS);
+    const oldModules = ngLSHost.getAnalyzedModules();
+    tsLSHost.override('/app/test.ng', '<div></div>');
+    const newModules = ngLSHost.getAnalyzedModules();
+    expect(newModules).toBe(oldModules);
+  });
 });
