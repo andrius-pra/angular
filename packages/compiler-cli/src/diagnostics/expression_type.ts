@@ -304,6 +304,7 @@ export class AstType implements AstVisitor {
   }
 
   visitPrefixNot(ast: PrefixNot) {
+    this.getType(ast.expression);
     // The type of a prefix ! is always boolean.
     return this.query.getBuiltinType(BuiltinType.Boolean);
   }
