@@ -508,16 +508,15 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
       }
       const htmlParser = new I18NHtmlParser(new HtmlParser());
       const expressionParser = new Parser(new Lexer());
+      const compilerConfig = new CompilerConfig({preserveEmptyExpressions: true});
       const parser = new TemplateParser(
-          new CompilerConfig(), this.reflector, expressionParser, new DomElementSchemaRegistry(),
+          compilerConfig, this.reflector, expressionParser, new DomElementSchemaRegistry(),
           htmlParser,
           null !,  // console
           []       // tranforms
           );
-      const htmlResult = htmlParser.parse(template.source, fileName, {
-        tokenizeExpansionForms: true,
-        preserveLineEndings: true
-      });
+      const htmlResult = htmlParser.parse(
+          template.source, fileName, {tokenizeExpansionForms: true, preserveLineEndings: true});
       const {directives, pipes, schemas} = this.getModuleMetadataForDirective(classSymbol);
       const parseResult =
           parser.tryParseHtml(htmlResult, data.metadata, directives, pipes, schemas);

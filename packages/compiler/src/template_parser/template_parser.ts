@@ -661,7 +661,7 @@ class TemplateParseVisitor implements html.Visitor {
         // Bindings are optional, so this binding only needs to be set up if an expression is given.
         if (boundProp) {
           targetBoundDirectivePropNames.add(boundProp.name);
-          if (!isEmptyExpression(boundProp.expression)) {
+          if (this.config.preserveEmptyExpressions || !isEmptyExpression(boundProp.expression)) {
             targetBoundDirectiveProps.push(new t.BoundDirectivePropertyAst(
                 dirProp, boundProp.name, boundProp.expression, boundProp.sourceSpan));
           }
@@ -808,7 +808,7 @@ class TemplateParseVisitor implements html.Visitor {
         }
         this._reportError(errorMsg, boundProp.sourceSpan);
       }
-      return !isEmptyExpression(boundProp.value);
+      return this.config.preserveEmptyExpressions || !isEmptyExpression(boundProp.value);
     });
   }
 

@@ -18,23 +18,32 @@ export class CompilerConfig {
   public jitDevMode: boolean;
   public missingTranslation: MissingTranslationStrategy|null;
   public preserveWhitespaces: boolean;
+  public preserveEmptyExpressions: boolean;
   public strictInjectionParameters: boolean;
 
-  constructor(
-      {defaultEncapsulation = ViewEncapsulation.Emulated, useJit = true, jitDevMode = false,
-       missingTranslation = null, preserveWhitespaces, strictInjectionParameters}: {
-        defaultEncapsulation?: ViewEncapsulation,
-        useJit?: boolean,
-        jitDevMode?: boolean,
-        missingTranslation?: MissingTranslationStrategy|null,
-        preserveWhitespaces?: boolean,
-        strictInjectionParameters?: boolean,
-      } = {}) {
+  constructor({
+    defaultEncapsulation = ViewEncapsulation.Emulated,
+    useJit = true,
+    jitDevMode = false,
+    missingTranslation = null,
+    preserveWhitespaces,
+    strictInjectionParameters,
+    preserveEmptyExpressions: preserveEmptyExpressions
+  }: {
+    defaultEncapsulation?: ViewEncapsulation,
+    useJit?: boolean,
+    jitDevMode?: boolean,
+    missingTranslation?: MissingTranslationStrategy|null,
+    preserveWhitespaces?: boolean,
+    strictInjectionParameters?: boolean,
+    preserveEmptyExpressions?: boolean,
+  } = {}) {
     this.defaultEncapsulation = defaultEncapsulation;
     this.useJit = !!useJit;
     this.jitDevMode = !!jitDevMode;
     this.missingTranslation = missingTranslation;
     this.preserveWhitespaces = preserveWhitespacesDefault(noUndefined(preserveWhitespaces));
+    this.preserveEmptyExpressions = preserveEmptyExpressions === true;
     this.strictInjectionParameters = strictInjectionParameters === true;
   }
 }
