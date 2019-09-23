@@ -288,7 +288,19 @@ export class AstType implements AstVisitor {
   }
 
   visitMethodCall(ast: MethodCall) {
-    return this.resolveMethodCall(this.getType(ast.receiver), ast);
+    const receiverType = this.getType(ast.receiver);
+    if (ast.name === '$any' && receiverType.name === '$implict') {
+      if (ast.args.length !== 1) {
+        this.reportError(
+            `Invalid call to $any, expected 1 argument but received ${ast.args.length || 'none'}`,
+            ast);
+      } else {
+        // get diagnostic errors for fist parameter
+        this.getType(ast.args[0]);
+      }
+      return this.query.getBuiltinType(BuiltinType.Any);
+    }
+    return this.resolveMethodCall(receiverType, ast);
   }
 
   visitPipe(ast: BindingPipe) {
