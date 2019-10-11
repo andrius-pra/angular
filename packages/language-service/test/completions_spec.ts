@@ -87,8 +87,8 @@ describe('completions', () => {
           }
         } catch (e) {
           // Emit enough diagnostic information to reproduce the error.
-          console.error(
-              `Position: ${position}\nContent: "${mockHost.readFile(fileName)}"\nStack:\n${e.stack}`);
+          console.error(`Position: ${position}\nContent: "${
+              mockHost.readFile(fileName)}"\nStack:\n${e.stack}`);
           throw e;
         }
       }
@@ -127,6 +127,89 @@ describe('completions', () => {
     }).not.toThrow();
   });
 
+  describe('replace completions correctly', () => {
+    it('should work for zero-length replacements', () => {
+      const fileName = mockHost.addCode(`
+      @Component({
+        selector: 'foo-component',
+        template: \`
+          <div>{{obj.~{key}}}</div>
+        \`,
+      })
+      export class FooComponent {
+        obj: {key: 'value'};
+      }
+    `);
+      const location = mockHost.getMarkerLocations(fileName) !['key'];
+      const completions = ngService.getCompletionsAt(fileName, location) !;
+      expect(completions).toBeDefined();
+      expect(completions.entries.length).toBe(1);
+      const [completion] = completions.entries;
+      expect(completion.replacementSpan).toEqual({start: location, length: 0});
+    });
+
+    it('should work for interpolations', () => {
+      const fileName = mockHost.addCode(`
+      @Component({
+        selector: 'foo-component',
+        template: \`
+          <div>{{ti~{title}}}</div>
+        \`,
+      })
+      export class FooComponent {
+        title: string;
+      }
+    `);
+      const location = mockHost.getMarkerLocations(fileName) !['title'];
+      const completions = ngService.getCompletionsAt(fileName, location) !;
+      expect(completions).toBeDefined();
+      expect(completions.entries.length).toBe(1);
+      const [completion] = completions.entries;
+      expect(completion.replacementSpan).toEqual({start: location - 2, length: 2});
+    });
+
+    it('should work for attributes', () => {
+      const fileName = mockHost.addCode(`
+      @Component({
+        selector: 'foo-component',
+        template: \`
+          <div cl~{click}></div>
+        \`,
+      })
+      export class FooComponent {
+        title: string;
+      }
+    `);
+      const location = mockHost.getMarkerLocations(fileName) !['click'];
+      const completions = ngService.getCompletionsAt(fileName, location) !;
+      expect(completions).toBeDefined();
+      const completion = completions.entries.find(entry => entry.name === '(click)') !;
+      expect(completion).toBeDefined();
+      expect(completion.replacementSpan).toEqual({start: location - 2, length: 2});
+    });
+
+    it('should work for events', () => {
+      const fileName = mockHost.addCode(`
+      @Component({
+        selector: 'foo-component',
+        template: \`
+          <div (click)="han~{handleClick}">{{ti~{title}}}</div>
+        \`,
+      })
+      export class FooComponent {
+        handleClick() {}
+      }
+    `);
+      const location = mockHost.getMarkerLocations(fileName) !['handleClick'];
+      debugger;
+      const completions = ngService.getCompletionsAt(fileName, location) !;
+      expect(completions).toBeDefined();
+      expect(completions.entries.length).toBe(1);
+      const [completion] = completions.entries;
+      expect(completion.replacementSpan).toEqual({start: location - 3, length: 3});
+    });
+  });
+
   describe('with regression tests', () => {
     it('should not crash with an incomplete component', () => {
       expect(() => {
@@ -148,7 +231,6 @@ describe('completions', () => {
         ngHost.getAnalyzedModules();
       }).not.toThrow();
     });
-
   });
 
   it('should respect paths configuration', () => {
@@ -209,12 +291,12 @@ function expectEntries(
     locationMarker: string, completion: ts.CompletionInfo | undefined, ...names: string[]) {
   let entries: {[name: string]: boolean} = {};
   if (!completion) {
-    throw new Error(
-        `Expected result from ${locationMarker} to include ${names.join(', ')} but no result provided`);
+    throw new Error(`Expected result from ${locationMarker} to include ${
+        names.join(', ')} but no result provided`);
   }
   if (!completion.entries.length) {
-    throw new Error(
-        `Expected result from ${locationMarker} to include ${names.join(', ')} an empty result provided`);
+    throw new Error(`Expected result from ${locationMarker} to include ${
+        names.join(', ')} an empty result provided`);
   }
   for (const entry of completion.entries) {
     entries[entry.name] = true;
@@ -222,7 +304,9 @@ function expectEntries(
   let missing = names.filter(name => !entries[name]);
   if (missing.length) {
     throw new Error(
-        `Expected result from ${locationMarker} to include at least one of the following, ${missing.join(', ')}, in the list of entries ${completion.entries.map(entry => entry.name).join(', ')}`);
+        `Expected result from ${locationMarker} to include at least one of the following, ${
+            missing.join(', ')}, in the list of entries ${
+            completion.entries.map(entry => entry.name).join(', ')}`);
   }
 }
 
