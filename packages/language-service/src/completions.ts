@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {AST, AstPath, Attribute, BoundDirectivePropertyAst, BoundElementPropertyAst, BoundEventAst, BoundTextAst, CssSelector, Element, ElementAst, ImplicitReceiver, NAMED_ENTITIES, Node as HtmlAst, NullTemplateVisitor, ParseSpan, PropertyRead, SelectorMatcher, TagContentType, Text, findNode, getHtmlTagDefinition, splitNsName} from '@angular/compiler';
+import {AST, ASTWithSource, AstPath, Attribute, BoundDirectivePropertyAst, BoundElementPropertyAst, BoundEventAst, BoundTextAst, CssSelector, Element, ElementAst, ImplicitReceiver, NAMED_ENTITIES, Node as HtmlAst, NullTemplateVisitor, ParseSpan, PropertyRead, SelectorMatcher, TagContentType, Text, findNode, getHtmlTagDefinition, splitNsName} from '@angular/compiler';
 import {getExpressionScope} from '@angular/compiler-cli/src/language_services';
 
 import {AstResult, AttrInfo} from './common';
@@ -61,7 +61,13 @@ function getClosestTextStartOffset(templateInfo: AstResult, position: number): n
   }
 
   // Find the Angular template syntax AST closest to queried template position.
-  const closestAst = findAstAt(ast, templatePosition - templateAstTail.sourceSpan.start.offset);
+  let closestAst !: AstPath<AST>;
+  if (ast instanceof ASTWithSource) {
+    closestAst = findAstAt(ast.ast, templatePosition - ast.sourceSpan.start);
+  } else {
+    closestAst = findAstAt(ast, templatePosition - templateAstTail.sourceSpan.start.offset);
+  }
+
   const closestTail = closestAst.tail;
   if (!closestTail) return 0;
 
