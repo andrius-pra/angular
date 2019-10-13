@@ -193,7 +193,7 @@ describe('completions', () => {
       @Component({
         selector: 'foo-component',
         template: \`
-          <div (click)="han~{handleClick}">{{ti~{title}}}</div>
+          <div (click)="han~{handleClick}"></div>
         \`,
       })
       export class FooComponent {
