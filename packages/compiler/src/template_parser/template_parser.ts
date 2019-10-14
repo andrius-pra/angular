@@ -30,6 +30,38 @@ import {BindingParser} from './binding_parser';
 import * as t from './template_ast';
 import {PreparsedElementType, preparseElement} from './template_preparser';
 
+function tagSet(tags: string): {[k: string]: boolean} {
+  const res: {[k: string]: boolean} = {};
+  for (const t of tags.split(',')) res[t] = true;
+  return res;
+}
+
+export const ARIA_ATTRS = tagSet(
+    'aria-activedescendant,aria-atomic,aria-autocomplete,aria-busy,aria-checked,aria-colcount,aria-colindex,' +
+    'aria-colspan,aria-controls,aria-current,aria-describedby,aria-details,aria-disabled,aria-dropeffect,' +
+    'aria-errormessage,aria-expanded,aria-flowto,aria-grabbed,aria-haspopup,aria-hidden,aria-invalid,' +
+    'aria-keyshortcuts,aria-label,aria-labelledby,aria-level,aria-live,aria-modal,aria-multiline,' +
+    'aria-multiselectable,aria-orientation,aria-owns,aria-placeholder,aria-posinset,aria-pressed,aria-readonly,' +
+    'aria-relevant,aria-required,aria-roledescription,aria-rowcount,aria-rowindex,aria-rowspan,aria-selected,' +
+    'aria-setsize,aria-sort,aria-valuemax,aria-valuemin,aria-valuenow,aria-valuetext');
+
+const exludeAttributes = new Set<string>();
+exludeAttributes.add('ngFor');
+exludeAttributes.add('ngForOf');
+exludeAttributes.add('ngIf');
+exludeAttributes.add('ngPluralCase');
+exludeAttributes.add('ngSwitchCase');
+exludeAttributes.add('ngSwitchDefault');
+exludeAttributes.add('*ngFor');
+exludeAttributes.add('*ngForOf');
+exludeAttributes.add('*ngIf');
+exludeAttributes.add('*ngPluralCase');
+exludeAttributes.add('*ngSwitchCase');
+exludeAttributes.add('*ngSwitchDefault');
+exludeAttributes.add('data-sel-id');
+exludeAttributes.add('sel-id');
+exludeAttributes.add('');
+
 const BIND_NAME_REGEXP =
     /^(?:(?:(?:(bind-)|(let-)|(ref-|#)|(on-)|(bindon-)|(@))(.+))|\[\(([^\)]+)\)\]|\[([^\]]+)\]|\(([^\)]+)\))$/;
 
@@ -327,7 +359,7 @@ class TemplateParseVisitor implements html.Visitor {
         isTemplateElement, element.name, directiveMetas, elementOrDirectiveProps,
         elementOrDirectiveRefs, element.sourceSpan !, references, boundDirectivePropNames);
     const elementProps: t.BoundElementPropertyAst[] = this._createElementPropertyAsts(
-        element.name, elementOrDirectiveProps, boundDirectivePropNames);
+        element.name, elementOrDirectiveProps, boundDirectivePropNames, directiveAsts);
     const isViewRoot = parent.isTemplateElement || hasInlineTemplates;
 
     const providerContext = new ProviderElementContext(
@@ -391,7 +423,7 @@ class TemplateParseVisitor implements html.Visitor {
           true, elName, directives, templateElementOrDirectiveProps, [], element.sourceSpan !, [],
           templateBoundDirectivePropNames);
       const templateElementProps: t.BoundElementPropertyAst[] = this._createElementPropertyAsts(
-          elName, templateElementOrDirectiveProps, templateBoundDirectivePropNames);
+          elName, templateElementOrDirectiveProps, templateBoundDirectivePropNames, directiveAsts);
       this._assertNoComponentsNorElementBindingsOnTemplate(
           templateDirectiveAsts, templateElementProps, element.sourceSpan !);
       const templateProviderContext = new ProviderElementContext(
@@ -639,14 +671,35 @@ class TemplateParseVisitor implements html.Visitor {
   }
 
   private _createElementPropertyAsts(
-      elementName: string, props: ParsedProperty[],
-      boundDirectivePropNames: Set<string>): t.BoundElementPropertyAst[] {
+      elementName: string, props: ParsedProperty[], boundDirectivePropNames: Set<string>,
+      directiveAsts: t.DirectiveAst[]): t.BoundElementPropertyAst[] {
     const boundElementProps: t.BoundElementPropertyAst[] = [];
 
     props.forEach((prop: ParsedProperty) => {
-      if (!prop.isLiteral && !boundDirectivePropNames.has(prop.name)) {
+
+      if (ARIA_ATTRS[prop.name]) {
+        return;
+      }
+
+      if ((!prop.isLiteral || !prop.name.startsWith('*')) &&
+          !boundDirectivePropNames.has(prop.name)) {
         const boundProp = this._bindingParser.createBoundElementProperty(elementName, prop);
-        boundElementProps.push(t.BoundElementPropertyAst.fromBoundProperty(boundProp));
+
+        if (exludeAttributes.has(prop.name) || prop.name.startsWith('data-')) {
+          return;
+        }
+
+        if (prop.isLiteral && directiveAsts &&
+            directiveAsts.find(
+                x => x.directive != null && x.directive.selector != null &&
+                    x.directive.selector.indexOf(`${prop.name}`) != -1)) {
+          return;
+        }
+
+        if (!prop.isLiteral ||
+            !this._schemaRegistry.hasProperty(elementName, '*' + boundProp.name, this._schemas)) {
+          boundElementProps.push(t.BoundElementPropertyAst.fromBoundProperty(boundProp));
+        }
       }
     });
     return this._checkPropertiesInSchema(elementName, boundElementProps);
