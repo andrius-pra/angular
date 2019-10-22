@@ -137,8 +137,7 @@ export class Parser {
     const span = new ParseSpan(0, input == null ? 0 : input.length);
     return new ASTWithSource(
         new Interpolation(span, span.toAbsolute(absoluteOffset), split.strings, expressions), input,
-        location, absoluteOffset, this.errors);
-        input, location, absoluteOffset, this.errors.splice(0));
+        location, absoluteOffset, this.errors.splice(0));
   }
 
   splitInterpolation(
