@@ -40,7 +40,7 @@ describe('completions', () => {
     }
   });
 
-  it('should be able to return element directives', () => {
+  it('should be able to return component directives', () => {
     const marker = mockHost.getLocationMarkerFor(APP_COMPONENT, 'empty');
     const completions = ngLS.getCompletionsAt(APP_COMPONENT, marker.start);
     expectContain(completions, CompletionKind.COMPONENT, [
@@ -49,6 +49,12 @@ describe('completions', () => {
       'ng-component',
       'test-comp',
     ]);
+  });
+
+  it('should be able to return attribute directives', () => {
+    const marker = mockHost.getLocationMarkerFor(APP_COMPONENT, 'h1-after-space');
+    const completions = ngLS.getCompletionsAt(APP_COMPONENT, marker.start);
+    expectContain(completions, CompletionKind.ATTRIBUTE, ['string-model', 'number-model']);
   });
 
   it('should be able to return angular pseudo elements', () => {
@@ -294,11 +300,14 @@ describe('completions', () => {
     it('should work with input and output', () => {
       const m1 = mockHost.getLocationMarkerFor(PARSING_CASES, 'string-marker');
       const c1 = ngLS.getCompletionsAt(PARSING_CASES, m1.start);
-      expectContain(c1, CompletionKind.ATTRIBUTE, ['[model]', '(model)']);
+      expectContain(c1, CompletionKind.ATTRIBUTE, ['[model]', '(modelChange)', '[(model)]']);
 
       const m2 = mockHost.getLocationMarkerFor(PARSING_CASES, 'number-marker');
       const c2 = ngLS.getCompletionsAt(PARSING_CASES, m2.start);
-      expectContain(c2, CompletionKind.ATTRIBUTE, ['[inputAlias]', '(outputAlias)']);
+      expectContain(c2, CompletionKind.ATTRIBUTE, [
+        '[inputAlias]',
+        '(outputAlias)',
+      ]);
     });
   });
 

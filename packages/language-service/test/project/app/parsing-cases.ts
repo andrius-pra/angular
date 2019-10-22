@@ -80,7 +80,7 @@ export class TwoWayBinding {
 })
 export class StringModel {
   @Input() model: string = 'model';
-  @Output() modelChanged: EventEmitter<string> = new EventEmitter();
+  @Output() modelChange: EventEmitter<string> = new EventEmitter();
 }
 
 @Directive({
@@ -88,7 +88,7 @@ export class StringModel {
 })
 export class NumberModel {
   @Input('inputAlias') model: number = 0;
-  @Output('outputAlias') modelChanged: EventEmitter<number> = new EventEmitter();
+  @Output('outputAlias') modelChange: EventEmitter<number> = new EventEmitter();
 }
 
 @Component({
