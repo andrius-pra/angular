@@ -54,18 +54,24 @@ export function getTemplateCompletions(
             } else if (templatePosition < startTagSpan.end) {
               // We are in the attribute section of the element (but not in an attribute).
               // Return the attribute completions.
-              result = attributeCompletions(templateInfo, path);
+              result = attributeCompletions(templateInfo, path, templatePosition);
             }
           },
           visitAttribute(ast) {
             if (!ast.valueSpan || !inSpan(templatePosition, spanOf(ast.valueSpan))) {
               // We are in the name of an attribute. Show attribute completions.
-              result = attributeCompletions(templateInfo, path);
+              result = attributeCompletions(templateInfo, path, templatePosition);
             } else if (ast.valueSpan && inSpan(templatePosition, spanOf(ast.valueSpan))) {
               result = attributeValueCompletions(templateInfo, templatePosition, ast);
             }
           },
           visitText(ast) {
+            const charBefore =
+                templateInfo.template.source.substring(templatePosition - 1, templatePosition);
+            if (charBefore == ']' || charBefore == '"' || charBefore == '\'') {
+              return [];
+            }
+
             // Check if we are in a entity.
             result = entityCompletions(getSourceText(template, spanOf(ast)), astPosition);
             if (result.length) return result;
@@ -98,9 +104,13 @@ export function getTemplateCompletions(
   return result;
 }
 
-function attributeCompletions(info: AstResult, path: AstPath<HtmlAst>): ts.CompletionEntry[] {
+function attributeCompletions(
+    info: AstResult, path: AstPath<HtmlAst>, templatePosition: number): ts.CompletionEntry[] {
   const item = path.tail instanceof Element ? path.tail : path.parentOf(path.tail);
   if (item instanceof Element) {
+    if (item.attrs.find(x => x.sourceSpan.end.offset === templatePosition)) {
+      return [];
+    }
     return attributeCompletionsForElement(info, item.name);
   }
   return [];
