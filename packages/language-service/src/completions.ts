@@ -45,6 +45,69 @@ const ANGULAR_ELEMENTS: ReadonlyArray<ng.CompletionEntry> = [
   },
 ];
 
+/**
+ * Gets the span of word in a template that surrounds `position`. If there is no word around
+ * `position`, nothing is returned.
+ */
+function getBoundedWordSpan(templateInfo: AstResult, position: number): ts.TextSpan|undefined {
+  const WORD_PART = /[0-9a-zA-Z_]/;
+
+  const {template} = templateInfo;
+  const templateSrc = template.source;
+
+  // TODO(ayazhafiz): A solution based on word expansion will always be expensive compared to one
+  // based on ASTs. Whatever penalty we incur is probably manageable for small-length (i.e. the
+  // majority of) identifiers, but the current solution involes a number of branchings and we can't
+  // control potentially very long identifiers. Consider moving to an AST-based solution once
+  // existing difficulties with AST spans are more clearly resolved (see #31898 for discussion of
+  // known problems, and #33091 for how they affect text replacement).
+  //
+  // `templatePosition` represents the right-bound location of a cursor in the template.
+  //    key.ent|ry
+  //           ^---- cursor, at position `r` is at.
+  // A cursor is not itself a character in the template; it has a left (lower) and right (upper)
+  // index bound that hugs the cursor itself.
+  let templatePosition = position - template.span.start;
+  // To perform word expansion, we want to determine the left and right indeces that hug the cursor.
+  // There are three cases here.
+  //
+  // 1. Case like
+  //      wo|rd
+  //    there is a clear left and right index.
+  let left = templatePosition - 1, right = templatePosition;
+  // 2. Case like
+  //      |rest of template
+  //    the cursor is at the start of the template, hugged only by the right side (0-index).
+  if (templatePosition === 0) {
+    left = right = 0;
+  }
+  // 2. Case like
+  //      rest of template|
+  //    the cursor is at the end of the template, hugged only by the left side (last-index).
+  if (templatePosition === templateSrc.length) {
+    left = right = templateSrc.length - 1;
+  }
+
+  if (!templateSrc[left].match(WORD_PART) && !templateSrc[right].match(WORD_PART)) {
+    // Case like
+    //         .|.
+    // left ---^ ^--- right
+    // There is no word here.
+    return;
+  }
+
+  // Expand on the left and right side until a word boundary is hit. Back up one expansion on both
+  // side to stay inside the word.
+  while (left >= 0 && templateSrc[left].match(WORD_PART)) --left;
+  ++left;
+  while (right < templateSrc.length && templateSrc[right].match(WORD_PART)) ++right;
+  --right;
+
+  const absoluteStartPosition = position - (templatePosition - left);
+  const length = right - left + 1;
+  return {start: absoluteStartPosition, length};
+}
+
 export function getTemplateCompletions(
     templateInfo: AstResult, position: number): ng.CompletionEntry[] {
   let result: ng.CompletionEntry[] = [];
@@ -110,7 +173,13 @@ export function getTemplateCompletions(
         },
         null);
   }
-  return result;
+
+  return result.map(entry => {
+    return {
+      ...entry,
+      replacementSpan: getBoundedWordSpan(templateInfo, position),
+    };
+  })
 }
 
 function attributeCompletions(info: AstResult, path: AstPath<HtmlAst>): ng.CompletionEntry[] {
