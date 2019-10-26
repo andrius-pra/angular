@@ -6,7 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {AST, AstPath, Attribute, BoundDirectivePropertyAst, BoundElementPropertyAst, BoundEventAst, BoundTextAst, Element, ElementAst, ImplicitReceiver, NAMED_ENTITIES, Node as HtmlAst, NullTemplateVisitor, ParseSpan, PropertyRead, TagContentType, Text, findNode, getHtmlTagDefinition} from '@angular/compiler';
+import {AST, AstPath, Attribute, BoundDirectivePropertyAst, BoundElementPropertyAst, BoundEventAst, BoundTextAst, Element, ElementAst, ImplicitReceiver, NAMED_ENTITIES, Node as HtmlAst, NullTemplateVisitor, ParseSpan, PropertyRead, TagContentType, Text, findNode, getHtmlTagDefinition, isIdentifierPart} from '@angular/compiler';
 import {getExpressionScope} from '@angular/compiler-cli/src/language_services';
 
 import {AstResult} from './common';
@@ -50,14 +50,33 @@ const ANGULAR_ELEMENTS: ReadonlyArray<ng.CompletionEntry> = [
  * `position`, nothing is returned.
  */
 function getBoundedWordSpan(templateInfo: AstResult, position: number): ts.TextSpan|undefined {
-  const WORD_PART = /[0-9a-zA-Z_]/;
-
-  const {template} = templateInfo;
+  const {template, htmlAst} = templateInfo;
   const templateSrc = template.source;
+
+  let templatePosition = position - template.span.start;
+
+  const path = findNode(htmlAst, templatePosition);
+  const mostSpecific = path.tail;
+  if (mostSpecific instanceof Element) {
+    const start = mostSpecific.sourceSpan.start.offset + 1;
+    const end = mostSpecific.sourceSpan.start.offset + mostSpecific.name.length + 1;
+
+    if (start <= templatePosition && templatePosition <= end) {
+      return {start: start + template.span.start, length: end - start};
+    }
+  } else if (mostSpecific instanceof Attribute) {
+    const start = mostSpecific.sourceSpan.start.offset;
+    const end = mostSpecific.sourceSpan.start.offset + mostSpecific.name.length;
+    if (start <= templatePosition && templatePosition <= end) {
+      return {start: start + template.span.start, length: end - start};
+    }
+  }
+
 
   // TODO(ayazhafiz): A solution based on word expansion will always be expensive compared to one
   // based on ASTs. Whatever penalty we incur is probably manageable for small-length (i.e. the
-  // majority of) identifiers, but the current solution involes a number of branchings and we can't
+  // majority of) identifiers, but the current solution involes a number of branchings and we
+  // can't
   // control potentially very long identifiers. Consider moving to an AST-based solution once
   // existing difficulties with AST spans are more clearly resolved (see #31898 for discussion of
   // known problems, and #33091 for how they affect text replacement).
@@ -67,8 +86,8 @@ function getBoundedWordSpan(templateInfo: AstResult, position: number): ts.TextS
   //           ^---- cursor, at position `r` is at.
   // A cursor is not itself a character in the template; it has a left (lower) and right (upper)
   // index bound that hugs the cursor itself.
-  let templatePosition = position - template.span.start;
-  // To perform word expansion, we want to determine the left and right indeces that hug the cursor.
+  // To perform word expansion, we want to determine the left and right indeces that hug the
+  // cursor.
   // There are three cases here.
   //
   // 1. Case like
@@ -88,7 +107,7 @@ function getBoundedWordSpan(templateInfo: AstResult, position: number): ts.TextS
     left = right = templateSrc.length - 1;
   }
 
-  if (!templateSrc[left].match(WORD_PART) && !templateSrc[right].match(WORD_PART)) {
+  if (!isIdentifierPart(templateSrc.charCodeAt(left)) && !templateSrc.charCodeAt(right)) {
     // Case like
     //         .|.
     // left ---^ ^--- right
@@ -98,14 +117,17 @@ function getBoundedWordSpan(templateInfo: AstResult, position: number): ts.TextS
 
   // Expand on the left and right side until a word boundary is hit. Back up one expansion on both
   // side to stay inside the word.
-  while (left >= 0 && templateSrc[left].match(WORD_PART)) --left;
+  while (left >= 0 && isIdentifierPart(templateSrc.charCodeAt(left))) --left;
   ++left;
-  while (right < templateSrc.length && templateSrc[right].match(WORD_PART)) ++right;
+  while (right < templateSrc.length && isIdentifierPart(templateSrc.charCodeAt(right))) ++right;
   --right;
 
   const absoluteStartPosition = position - (templatePosition - left);
   const length = right - left + 1;
-  return {start: absoluteStartPosition, length};
+
+  if (length > 0) {
+    return {start: absoluteStartPosition, length};
+  }
 }
 
 export function getTemplateCompletions(
@@ -174,12 +196,8 @@ export function getTemplateCompletions(
         null);
   }
 
-  return result.map(entry => {
-    return {
-      ...entry,
-      replacementSpan: getBoundedWordSpan(templateInfo, position),
-    };
-  })
+  const replacementSpan = getBoundedWordSpan(templateInfo, position);
+  return result.map(entry => { return {...entry, replacementSpan}; })
 }
 
 function attributeCompletions(info: AstResult, path: AstPath<HtmlAst>): ng.CompletionEntry[] {

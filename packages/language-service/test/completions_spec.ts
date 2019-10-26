@@ -396,7 +396,6 @@ describe('replace completions correctly', () => {
           }
         `);
     const location = mockHost.getLocationMarkerFor(fileName, 'key');
-    debugger;
     const completions = ngLS.getCompletionsAt(fileName, location.start) !;
     expect(completions).toBeDefined();
     const completion = completions.entries.find(entry => entry.name === 'key') !;
@@ -499,6 +498,67 @@ describe('replace completions correctly', () => {
     const completion = completions.entries.find(entry => entry.name === '(click)') !;
     expect(completion).toBeDefined();
     expect(completion.replacementSpan).toEqual({start: location.start - 2, length: 2});
+  });
+
+  it('should work for two-way binding', () => {
+    const fileName = mockHost.addCode(`
+          @Component({
+            selector: 'foo-component',
+            template: \`
+              <div string-model [~{model}(model)]="field1"></div>
+            \`,
+          })
+          export class FooComponent {
+            title: string;
+          }
+        `);
+    const location = mockHost.getLocationMarkerFor(fileName, 'model');
+    const completions = ngLS.getCompletionsAt(fileName, location.start) !;
+    expect(completions).toBeDefined();
+    const completion = completions.entries.find(entry => entry.name === '[model]') !;
+    expect(completion).toBeDefined();
+    expect(completion.replacementSpan).toEqual({start: location.start - 1, length: 9});
+  });
+
+  it('should work for element name', () => {
+    const fileName = mockHost.addCode(`
+          @Component({
+            selector: 'foo-component',
+            template: \`
+              <a~{elementName}pp-example></app-example>
+            \`,
+          })
+          export class FooComponent {
+            title: string;
+          }
+        `);
+    const location = mockHost.getLocationMarkerFor(fileName, 'elementName');
+    const completions = ngLS.getCompletionsAt(fileName, location.start) !;
+    expect(completions).toBeDefined();
+    const completion = completions.entries.find(entry => entry.name === 'ng-container') !;
+    expect(completion).toBeDefined();
+    expect(completion.replacementSpan).toEqual({start: location.start - 1, length: 11});
+  });
+
+  it('should work for names with `_`, `$` characters', () => {
+    const fileName = mockHost.addCode(`
+          @Component({
+            selector: 'foo-component',
+            template: \`
+              <div title="{{~{title}$field_1}}"></div>
+            \`,
+          })
+          export class FooComponent {
+            title: string;
+            $field_1: string;
+          }
+        `);
+    const location = mockHost.getLocationMarkerFor(fileName, 'title');
+    const completions = ngLS.getCompletionsAt(fileName, location.start) !;
+    expect(completions).toBeDefined();
+    const completion = completions.entries.find(entry => entry.name === '$any') !;
+    expect(completion).toBeDefined();
+    expect(completion.replacementSpan).toEqual({start: location.start, length: 8});
   });
 
   it('should work for events', () => {
