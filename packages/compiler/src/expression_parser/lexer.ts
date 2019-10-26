@@ -348,7 +348,7 @@ export function isIdentifier(input: string): boolean {
   return true;
 }
 
-function isIdentifierPart(code: number): boolean {
+export function isIdentifierPart(code: number): boolean {
   return chars.isAsciiLetter(code) || chars.isDigit(code) || (code == chars.$_) ||
       (code == chars.$$);
 }

@@ -50,7 +50,7 @@ describe('TypeScriptServiceHost', () => {
     expect(analyzedModules.files.length).toBe(0);
     expect(analyzedModules.ngModules.length).toBe(0);
     expect(analyzedModules.ngModuleByPipeOrDirective.size).toBe(0);
-    expect(analyzedModules.symbolsMissingModule).toEqual([]);
+    expect(analyzedModules.symbolsMissingModule).toBeUndefined();
   });
 
   it('should clear the caches if new script is added', () => {

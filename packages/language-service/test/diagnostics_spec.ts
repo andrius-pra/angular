@@ -395,7 +395,7 @@ describe('diagnostics', () => {
       @Component({
         selector: 'example-app',
         template: \`
-           <form #f="ngForm" (ngSubmit)="onSubmit(f)" novalidate>
+           <form #f="ngForm" (ngSubmit)="onSubmit(f)" noValidate>
             <input name="first" ngModel required #first="ngModel">
             <input name="last" ngModel>
             <button>Submit</button>
@@ -409,6 +409,7 @@ describe('diagnostics', () => {
       export class AppComponent {
         onSubmit(form: NgForm) {}
       }`);
+    debugger;
     const tsDiags = tsLS.getSemanticDiagnostics(fileName);
     expect(tsDiags).toEqual([]);
     const ngDiags = ngLS.getDiagnostics(fileName);
