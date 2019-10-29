@@ -56,10 +56,29 @@ function isIdentifierPart(code: number) {
  * `position`, nothing is returned.
  */
 function getBoundedWordSpan(templateInfo: AstResult, position: number): ts.TextSpan|undefined {
-  const {template} = templateInfo;
+  const {template, htmlAst} = templateInfo;
   const templateSrc = template.source;
 
   if (!templateSrc) return;
+
+  let templatePosition = position - template.span.start;
+
+  const path = findNode(htmlAst, templatePosition);
+  const mostSpecific = path.tail;
+  if (mostSpecific instanceof Element) {
+    const start = mostSpecific.sourceSpan.start.offset + 1;
+    const end = mostSpecific.sourceSpan.start.offset + mostSpecific.name.length + 1;
+
+    if (start <= templatePosition && templatePosition <= end) {
+      return {start: start + template.span.start, length: end - start};
+    }
+  } else if (mostSpecific instanceof Attribute) {
+    const start = mostSpecific.sourceSpan.start.offset;
+    const end = mostSpecific.sourceSpan.start.offset + mostSpecific.name.length;
+    if (start <= templatePosition && templatePosition <= end) {
+      return {start: start + template.span.start, length: end - start};
+    }
+  }
 
   // TODO(ayazhafiz): A solution based on word expansion will always be expensive compared to one
   // based on ASTs. Whatever penalty we incur is probably manageable for small-length (i.e. the
@@ -73,7 +92,6 @@ function getBoundedWordSpan(templateInfo: AstResult, position: number): ts.TextS
   //           ^---- cursor, at position `r` is at.
   // A cursor is not itself a character in the template; it has a left (lower) and right (upper)
   // index bound that hugs the cursor itself.
-  let templatePosition = position - template.span.start;
   // To perform word expansion, we want to determine the left and right indices that hug the cursor.
   // There are three cases here.
   let left, right;
