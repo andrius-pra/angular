@@ -245,8 +245,8 @@ function attributeValueCompletions(
   }
   const dinfo = diagnosticInfoFromTemplateInfo(info);
   const includeEvents = !!path.first(BoundEventAst);
-  const visitor =
-      new ExpressionVisitor(info, position, () => getExpressionScope(dinfo, path, false), attr);
+  const visitor = new ExpressionVisitor(
+      info, position, () => getExpressionScope(dinfo, path, includeEvents), attr);
   path.tail.visit(visitor, null);
   const {results} = visitor;
   if (results.length) {
