@@ -123,7 +123,7 @@ class TypeScriptSymbolQuery implements SymbolQuery {
 
   getElementType(type: Symbol): Symbol|undefined {
     if (type instanceof TypeWrapper) {
-      const elementType = getTypeParameterOf(type.tsType, 'Array');
+      const elementType = getTypeParameterOf(type.tsType, 'Array', this.checker);
       if (elementType) {
         return new TypeWrapper(elementType, type.context);
       }
@@ -195,8 +195,9 @@ class TypeScriptSymbolQuery implements SymbolQuery {
         const type = this.checker.getTypeAtLocation(parameter.type !);
         if (type.symbol !.name == 'TemplateRef' && isReferenceType(type)) {
           const typeReference = type as ts.TypeReference;
-          if (typeReference.typeArguments && typeReference.typeArguments.length === 1) {
-            return typeReference.typeArguments[0].symbol;
+          const typeArguments = getTypeArguments(this.checker, typeReference);
+          if (typeArguments && typeArguments.length === 1) {
+            return typeArguments[0].symbol;
           }
         }
       }
@@ -567,7 +568,8 @@ class PipeSymbol implements Symbol {
               case 'Observable':
               case 'Promise':
               case 'EventEmitter':
-                resultType = getTypeParameterOf(parameterType.tsType, parameterType.name);
+                resultType = getTypeParameterOf(
+                    parameterType.tsType, parameterType.name, this.context.checker);
                 break;
               default:
                 resultType = getBuiltinTypeFromTs(BuiltinType.Any, this.context);
@@ -673,26 +675,21 @@ function getBuiltinTypeFromTs(kind: BuiltinType, context: TypeContext): ts.Type 
           checker.getTypeAtLocation(setParents(<ts.Node>{kind: ts.SyntaxKind.NullKeyword}, node));
       break;
     case BuiltinType.Number:
-      const numeric = <ts.LiteralLikeNode>{
-        kind: ts.SyntaxKind.NumericLiteral,
-        text: node.getText(),
-      };
+      const numeric = <ts.LiteralLikeNode>{kind: ts.SyntaxKind.NumericLiteral, text: '1'};
       setParents(<any>{kind: ts.SyntaxKind.ExpressionStatement, expression: numeric}, node);
       type = checker.getTypeAtLocation(numeric);
       break;
     case BuiltinType.String:
-      type = checker.getTypeAtLocation(setParents(
-          <ts.LiteralLikeNode>{
-            kind: ts.SyntaxKind.NoSubstitutionTemplateLiteral,
-            text: node.getText(),
-          },
-          node));
+      const stringLiteralLike =
+          <ts.StringLiteralLike>{kind: ts.SyntaxKind.StringLiteral, text: '1'};
+      setParents(ts.createExpressionStatement(stringLiteralLike), node);
+      type = checker.getTypeAtLocation(stringLiteralLike);
       break;
     case BuiltinType.Undefined:
       type = checker.getTypeAtLocation(setParents(
           <ts.Node><any>{
             kind: ts.SyntaxKind.VoidExpression,
-            expression: <ts.Node>{kind: ts.SyntaxKind.NumericLiteral}
+            expression: ts.createNumericLiteral('0')
           },
           node));
       break;
@@ -765,9 +762,11 @@ function getContainerOf(symbol: ts.Symbol, context: TypeContext): Symbol|undefin
   }
 }
 
-function getTypeParameterOf(type: ts.Type, name: string): ts.Type|undefined {
+function getTypeParameterOf(type: ts.Type, name: string, checker: ts.TypeChecker): ts.Type|
+    undefined {
   if (type && type.symbol && type.symbol.name == name) {
-    const typeArguments: ts.Type[] = (type as any).typeArguments;
+    const typeReference = type as ts.TypeReference;
+    const typeArguments = getTypeArguments(checker, typeReference);
     if (typeArguments && typeArguments.length <= 1) {
       return typeArguments[0];
     }
@@ -822,4 +821,13 @@ function getFromSymbolTable(symbolTable: ts.SymbolTable, key: string): ts.Symbol
   }
 
   return symbol;
+}
+
+function getTypeArguments(
+    checker: ts.TypeChecker & {getTypeArguments?: (ref: ts.TypeReference) => readonly ts.Type[]},
+    typeReference: ts.TypeReference) {
+  if (checker.getTypeArguments) {
+    return checker.getTypeArguments(typeReference);
+  }
+  return typeReference.typeArguments;
 }

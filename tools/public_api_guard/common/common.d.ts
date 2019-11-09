@@ -186,10 +186,10 @@ export declare class LowerCasePipe implements PipeTransform {
 }
 
 export declare class NgClass extends NgClassBase implements DoCheck {
-    klass: string;
-    ngClass: string | string[] | Set<string> | {
+    set klass(value: string);
+    set ngClass(value: string | string[] | Set<string> | {
         [klass: string]: any;
-    };
+    });
     constructor(delegate: NgClassImpl);
     ngDoCheck(): void;
 }
@@ -215,9 +215,10 @@ export declare class NgComponentOutlet implements OnChanges, OnDestroy {
 }
 
 export declare class NgForOf<T> implements DoCheck {
-    ngForOf: NgIterable<T> | undefined | null;
-    ngForTemplate: TemplateRef<NgForOfContext<T>>;
-    ngForTrackBy: TrackByFunction<T>;
+    set ngForOf(ngForOf: NgIterable<T> | undefined | null);
+    set ngForTemplate(value: TemplateRef<NgForOfContext<T>>);
+    get ngForTrackBy(): TrackByFunction<T>;
+    set ngForTrackBy(fn: TrackByFunction<T>);
     constructor(_viewContainer: ViewContainerRef, _template: TemplateRef<NgForOfContext<T>>, _differs: IterableDiffers);
     ngDoCheck(): void;
     static ngTemplateContextGuard<T>(dir: NgForOf<T>, ctx: any): ctx is NgForOfContext<T>;
@@ -226,19 +227,19 @@ export declare class NgForOf<T> implements DoCheck {
 export declare class NgForOfContext<T> {
     $implicit: T;
     count: number;
-    readonly even: boolean;
-    readonly first: boolean;
+    get even(): boolean;
+    get first(): boolean;
     index: number;
-    readonly last: boolean;
+    get last(): boolean;
     ngForOf: NgIterable<T>;
-    readonly odd: boolean;
+    get odd(): boolean;
     constructor($implicit: T, ngForOf: NgIterable<T>, index: number, count: number);
 }
 
 export declare class NgIf {
-    ngIf: any;
-    ngIfElse: TemplateRef<NgIfContext> | null;
-    ngIfThen: TemplateRef<NgIfContext> | null;
+    set ngIf(condition: any);
+    set ngIfElse(templateRef: TemplateRef<NgIfContext> | null);
+    set ngIfThen(templateRef: TemplateRef<NgIfContext> | null);
     constructor(_viewContainer: ViewContainerRef, templateRef: TemplateRef<NgIfContext>);
     static ngTemplateGuard_ngIf: 'binding';
 }
@@ -259,7 +260,7 @@ export declare abstract class NgLocalization {
 }
 
 export declare class NgPlural {
-    ngPlural: number;
+    set ngPlural(value: number);
     constructor(_localization: NgLocalization);
     addCase(value: string, switchView: SwitchView): void;
 }
@@ -270,9 +271,9 @@ export declare class NgPluralCase {
 }
 
 export declare class NgStyle extends NgStyleBase implements DoCheck {
-    ngStyle: {
+    set ngStyle(value: {
         [klass: string]: any;
-    } | null;
+    } | null);
     constructor(delegate: NgStyleImpl);
     ngDoCheck(): void;
 }
@@ -288,7 +289,7 @@ export declare class NgStyleBase {
 }
 
 export declare class NgSwitch {
-    ngSwitch: any;
+    set ngSwitch(newValue: any);
 }
 
 export declare class NgSwitchCase implements DoCheck {
@@ -350,13 +351,13 @@ export declare class PercentPipe implements PipeTransform {
 }
 
 export declare abstract class PlatformLocation {
-    abstract readonly hash: string;
-    abstract readonly hostname: string;
-    abstract readonly href: string;
-    abstract readonly pathname: string;
-    abstract readonly port: string;
-    abstract readonly protocol: string;
-    abstract readonly search: string;
+    abstract get hash(): string;
+    abstract get hostname(): string;
+    abstract get href(): string;
+    abstract get pathname(): string;
+    abstract get port(): string;
+    abstract get protocol(): string;
+    abstract get search(): string;
     abstract back(): void;
     abstract forward(): void;
     abstract getBaseHrefFromDOM(): string;

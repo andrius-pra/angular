@@ -266,5 +266,6 @@ function findSatisfactoryVersion(
     // So just return the first config that matches the package name.
     return configs[0];
   }
-  return configs.find(config => satisfies(version, config.versionRange)) || null;
+  const semVerOptions = {includePrerelease: true};
+  return configs.find(config => satisfies(version, config.versionRange, semVerOptions)) || null;
 }
