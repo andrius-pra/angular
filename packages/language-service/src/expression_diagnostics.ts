@@ -9,6 +9,7 @@
 import {AST, AstPath, Attribute, BoundDirectivePropertyAst, BoundElementPropertyAst, BoundEventAst, BoundTextAst, CompileDirectiveSummary, CompileTypeMetadata, DirectiveAst, ElementAst, EmbeddedTemplateAst, Node, ParseSourceSpan, RecursiveTemplateAstVisitor, ReferenceAst, TemplateAst, TemplateAstPath, VariableAst, findNode, identifierName, templateVisitAll, tokenReference} from '@angular/compiler';
 
 import {AstType, DiagnosticKind, ExpressionDiagnosticsContext, TypeDiagnostic} from './expression_type';
+import {findOutputBinding} from './locate_symbol';
 import {BuiltinType, Definition, Span, Symbol, SymbolDeclaration, SymbolQuery, SymbolTable} from './symbols';
 
 export interface DiagnosticTemplateInfo {
@@ -178,21 +179,12 @@ function getEventDeclaration(
   if (includeEvent) {
     let eventType = info.query.getBuiltinType(BuiltinType.Any);
     if (path.tail instanceof BoundEventAst) {
-      const element = path.first(ElementAst);
-      if (element) {
-        for (const directive of element.directives) {
-          const fieldName = getFieldName(directive.directive.outputs, path.tail.name);
-          if (fieldName) {
-            const classSymbol = info.query.getTypeSymbol(directive.directive.type.reference);
-            if (classSymbol) {
-              const member = classSymbol.members().get(fieldName);
-              if (member && member.type) {
-                const typeArguments = info.query.getTypeArguments(member.type);
-                if (typeArguments && typeArguments.length) {
-                  eventType = typeArguments[0];
-                }
-              }
-            }
+      const member = findOutputBinding(info.query, path, path.tail);
+      if (member && member.type) {
+        if (member.type.name == 'Observable' || member.type.name == 'EventEmitter') {
+          const typeArguments = info.query.getTypeArguments(member.type);
+          if (typeArguments && typeArguments.length) {
+            eventType = typeArguments[0];
           }
         }
       }
@@ -201,15 +193,6 @@ function getEventDeclaration(
   }
   return result;
 }
-
-function getFieldName(obj: {[key: string]: string}, bindingName: string): string|undefined {
-  for (const name of Object.keys(obj)) {
-    if (obj[name] === bindingName) {
-      return name;
-    }
-  }
-}
-
 export function getExpressionScope(
     info: DiagnosticTemplateInfo, path: TemplateAstPath, includeEvent: boolean): SymbolTable {
   let result = info.members;
