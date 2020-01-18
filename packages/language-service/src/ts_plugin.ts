@@ -7,6 +7,7 @@
  */
 
 import * as tss from 'typescript/lib/tsserverlibrary';
+import {EmbededLanguagePluginFactory} from './embedded-languages/index';
 
 import {createLanguageService} from './language_service';
 import {TypeScriptServiceHost} from './typescript_host';
@@ -96,5 +97,8 @@ export function create(info: tss.server.PluginCreateInfo): tss.LanguageService {
           getCompletionsAtPosition, getQuickInfoAtPosition, getSemanticDiagnostics,
           getDefinitionAtPosition, getDefinitionAndBoundSpan,
       });
-  return proxy;
+
+  const proxyWithEmbededLs =
+      EmbededLanguagePluginFactory({typescript: tss}).create({...info, languageService: proxy});
+  return proxyWithEmbededLs;
 }

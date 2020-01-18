@@ -168,7 +168,11 @@
     "tsutils": "2.27.2",
     "universal-analytics": "0.4.15",
     "vlq": "0.2.2",
-    "vrsource-tslint-rules": "5.1.1"
+    "vrsource-tslint-rules": "5.1.1",
+    "vscode-html-languageservice": "2.1.10",
+    "vscode-css-languageservice": "4.0.2",
+    "vscode-languageserver-types": "3.13.0",
+    "vscode-emmet-helper": "1.2.17"
   },
   "// 4": "Overwrite graceful-fs to a version that does not rely on the 'natives' package. This fixes gulp for >= 10.13, more information: #28213",
   "resolutions": {

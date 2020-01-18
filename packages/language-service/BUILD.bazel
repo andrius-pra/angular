@@ -17,6 +17,10 @@ ts_library(
         "//packages/core",
         "@npm//@types/node",
         "@npm//typescript",
+        "@npm//vscode-html-languageservice",
+        "@npm//vscode-css-languageservice",
+        "@npm//vscode-languageserver-types",
+        "@npm//vscode-emmet-helper"
     ],
 )
 
