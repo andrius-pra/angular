@@ -854,13 +854,14 @@ class AngularCompilerProgram implements Program {
 }
 
 
-export function createProgram({rootNames, options, host, oldProgram}: {
+export function createProgram({rootNames, options, host, oldProgram, program}: {
   rootNames: ReadonlyArray<string>,
   options: CompilerOptions,
-  host: CompilerHost, oldProgram?: Program
+  host: CompilerHost, oldProgram?: Program, program?: ts.Program
 }): Program {
   if (options.enableIvy !== false) {
-    return new NgtscProgram(rootNames, options, host, oldProgram as NgtscProgram | undefined);
+    return new NgtscProgram(
+        rootNames, options, host, oldProgram as NgtscProgram | undefined, program);
   } else {
     return new AngularCompilerProgram(rootNames, options, host, oldProgram);
   }

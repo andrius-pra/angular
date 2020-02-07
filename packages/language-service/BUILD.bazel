@@ -17,6 +17,8 @@ ts_library(
         "//packages/core",
         "@npm//@types/node",
         "@npm//typescript",
+        "@npm//fs-extra",
+        "@npm//jsonfile",
     ],
 )
 

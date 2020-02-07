@@ -55,7 +55,7 @@ export class NgtscProgram implements api.Program {
 
   constructor(
       rootNames: ReadonlyArray<string>, private options: NgCompilerOptions,
-      delegateHost: api.CompilerHost, oldProgram?: NgtscProgram) {
+      delegateHost: api.CompilerHost, oldProgram?: NgtscProgram, tsProgram?: ts.Program) {
     // First, check whether the current TS version is supported.
     if (!options.disableTypeScriptVersionCheck) {
       verifySupportedTypeScriptVersion();
@@ -70,7 +70,8 @@ export class NgtscProgram implements api.Program {
     this.host = NgCompilerHost.wrap(delegateHost, rootNames, options);
 
     const reuseProgram = oldProgram && oldProgram.reuseTsProgram;
-    this.tsProgram = ts.createProgram(this.host.inputFiles, options, this.host, reuseProgram);
+    this.tsProgram =
+        tsProgram || ts.createProgram(this.host.inputFiles, options, this.host, reuseProgram);
     this.reuseTsProgram = this.tsProgram;
 
     // Create the NgCompiler which will drive the rest of the compilation.

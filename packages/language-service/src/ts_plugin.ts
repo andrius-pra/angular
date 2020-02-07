@@ -6,6 +6,7 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
+import * as ng from '@angular/compiler-cli';
 import * as tss from 'typescript/lib/tsserverlibrary';
 
 import {createLanguageService} from './language_service';
@@ -25,6 +26,7 @@ export function create(info: tss.server.PluginCreateInfo): tss.LanguageService {
   const angularOnly = config ? config.angularOnly === true : false;
   const ngLSHost = new TypeScriptServiceHost(tsLSHost, tsLS);
   const ngLS = createLanguageService(ngLSHost);
+  let ngProgram: ng.Program|undefined;
 
   function getCompletionsAtPosition(
       fileName: string, position: number,
@@ -55,8 +57,30 @@ export function create(info: tss.server.PluginCreateInfo): tss.LanguageService {
     if (!angularOnly) {
       results.push(...tsLS.getSemanticDiagnostics(fileName));
     }
+
     // For semantic diagnostics we need to combine both TS + Angular results
-    results.push(...ngLS.getSemanticDiagnostics(fileName));
+    if (ngProgram) {
+      try {
+        const diagnostics = ngProgram.getNgSemanticDiagnostics(fileName);
+        for (const diagnostic of diagnostics) {
+          if (ng.isNgDiagnostic(diagnostic)) {
+            results.push({
+              category: diagnostic.category,
+              code: diagnostic.code,
+              start: diagnostic.span !.start.offset !,
+              length: diagnostic.span !.end.offset - diagnostic.span !.start.offset,
+              file: undefined,
+              messageText: diagnostic.messageText,
+            })
+          } else {
+            results.push(diagnostic);
+          }
+        }
+      } catch {
+        results.push(...ngLS.getSemanticDiagnostics(fileName));
+      }
+    }
+
     return results;
   }
 
@@ -88,13 +112,42 @@ export function create(info: tss.server.PluginCreateInfo): tss.LanguageService {
     return ngLS.getDefinitionAndBoundSpan(fileName, position);
   }
 
+  function getProgram(): tss.Program|undefined {
+    const program = tsLS.getProgram();
+    ngProgram = wrap(program);
+    return program;
+  }
+
+  function wrap(program?: tss.Program): ng.Program|undefined {
+    if (!program) {
+      return;
+    }
+    const rootFiles = program ?.getRootFileNames() || [];
+    if (!rootFiles.find(x => x.endsWith('__ng_typecheck__.ts'))) {
+      return;
+    }
+    const options: ng.CompilerOptions = {
+      strict: true,
+      strictNullChecks: true,
+      enableIvy: true,
+      strictTemplates: true,
+    }
+
+    ngProgram = ng.createProgram({
+      host: tss.createCompilerHost(program?.getCompilerOptions() || {}),
+      rootNames: program?.getRootFileNames() || [],
+      options: options,
+      oldProgram: ngProgram,
+      program: program
+    });
+    return ngProgram;
+  }
+
   const proxy: tss.LanguageService = Object.assign(
       // First clone the original TS language service
       {}, tsLS,
       // Then override the methods supported by Angular language service
-      {
-          getCompletionsAtPosition, getQuickInfoAtPosition, getSemanticDiagnostics,
-          getDefinitionAtPosition, getDefinitionAndBoundSpan,
-      });
+      {getCompletionsAtPosition, getQuickInfoAtPosition, getSemanticDiagnostics,
+       getDefinitionAtPosition, getDefinitionAndBoundSpan, getProgram});
   return proxy;
 }
