@@ -364,4 +364,6 @@ export interface SymbolQuery {
    * Return the span of the narrowest non-token node at the given location.
    */
   getSpanAt(line: number, column: number): Span|undefined;
+
+  getDOMEventType(tag: string, evt: string): Symbol|undefined;
 }

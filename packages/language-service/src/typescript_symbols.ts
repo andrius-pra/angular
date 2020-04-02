@@ -190,6 +190,26 @@ class TypeScriptSymbolQuery implements SymbolQuery {
     return spanAt(this.source, line, column);
   }
 
+  getDOMEventType(tag: string, evt: string): Symbol|undefined {
+    var context = {node: this.source, program: this.program, checker: this.checker};
+    var code = `document.createElement('${tag}')\n .addEventListener('${evt}', (evt) => { evt; });`;
+    var sourceFile = ts.createSourceFile('test.ts', code, ts.ScriptTarget.ES2015, true);
+    // bindSourceFile is part of TypeScript's private API.
+    (ts as any).bindSourceFile(sourceFile, this.program.getCompilerOptions());
+    let identifier: ts.Identifier|undefined;
+    const findNode = (node: ts.Node) => {
+      if (ts.isIdentifier(node) && node.text == 'evt') {
+        identifier = node
+      };
+      ts.forEachChild(node, findNode);
+    };
+    ts.forEachChild(sourceFile.statements[0], findNode);
+    if (identifier) {
+      var eventType = this.program.getTypeChecker().getTypeAtLocation(identifier);
+      return new TypeWrapper(eventType, context);
+    }
+  }
+
   private getTemplateRefContextType(typeSymbol: ts.Symbol, context: TypeContext): Symbol|undefined {
     const type = this.checker.getTypeOfSymbolAtLocation(typeSymbol, this.source);
     const constructor = type.symbol && type.symbol.members &&

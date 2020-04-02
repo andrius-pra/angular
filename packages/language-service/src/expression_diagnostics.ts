@@ -207,6 +207,7 @@ function getEventDeclaration(
     return;
   }
 
+  const element = path.first(ElementAst);
   const genericEvent: SymbolDeclaration = {
     name: '$event',
     kind: 'variable',
@@ -215,6 +216,13 @@ function getEventDeclaration(
 
   const outputSymbol = findOutputBinding(event, path, info.query);
   if (!outputSymbol) {
+    if (element) {
+      const domEvent = info.query.getDOMEventType(element.name, event.name);
+      if (domEvent) {
+        return {...genericEvent, type: domEvent};
+      }
+    }
+
     // The `$event` variable doesn't belong to an output, so its type can't be refined.
     // TODO: type `$event` variables in bindings to DOM events.
     return genericEvent;
