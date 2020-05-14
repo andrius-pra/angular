@@ -455,6 +455,16 @@ describe('diagnostics', () => {
               `Identifier 'notSubstring' is not defined. 'string' does not contain such a member`);
       expect(content.substring(start!, start! + length!)).toBe('notSubstring');
     });
+
+    it('should reject invalid properties on a DOM event type', () => {
+      const content = mockHost.override(TEST_TEMPLATE, '<div (click)="$event.notAMethod()"></div>');
+      const diagnostics = ngLS.getSemanticDiagnostics(TEST_TEMPLATE) !;
+      expect(diagnostics.length).toBe(1);
+      const {messageText, start, length} = diagnostics[0];
+      expect(messageText).toBe(`Unknown method 'notAMethod'`);
+      expect(start).toBe(content.indexOf('$event'));
+      expect(length).toBe('$event.notAMethod()'.length);
+    });
   });
 
   it('should not crash with a incomplete *ngFor', () => {

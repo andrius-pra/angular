@@ -817,6 +817,14 @@ describe('completions', () => {
       // Expect string properties
       expectContain(completions, CompletionKind.METHOD, ['charAt', 'substring']);
     });
+
+    it('should suggest $event completions in bindings targeting DOM events', () => {
+      mockHost.override(TEST_TEMPLATE, `<div (click)="$event.~{cursor}"></div>`);
+      const marker = mockHost.getLocationMarkerFor(TEST_TEMPLATE, 'cursor');
+      const completions = ngLS.getCompletionsAtPosition(TEST_TEMPLATE, marker.start);
+      // Expect 'MouseEvent' properties
+      expectContain(completions, CompletionKind.PROPERTY, ['altKey', 'screenX']);
+    });
   });
 
   it('should select the right signature for a pipe given exact type', () => {
