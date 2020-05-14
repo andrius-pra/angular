@@ -8,6 +8,7 @@
 
 import {analyzeNgModules, AotSummaryResolver, CompileDirectiveSummary, CompileMetadataResolver, CompileNgModuleMetadata, CompilePipeSummary, CompilerConfig, createOfflineCompileUrlResolver, DirectiveNormalizer, DirectiveResolver, DomElementSchemaRegistry, FormattedError, FormattedMessageChain, HtmlParser, isFormattedError, JitSummaryResolver, Lexer, NgAnalyzedModules, NgModuleResolver, Parser, ParseTreeResult, PipeResolver, ResourceLoader, StaticReflector, StaticSymbol, StaticSymbolCache, StaticSymbolResolver, TemplateParser} from '@angular/compiler';
 import {SchemaMetadata, ViewEncapsulation, ɵConsole as Console} from '@angular/core';
+import * as ts from 'typescript';
 import * as tss from 'typescript/lib/tsserverlibrary';
 
 import {createLanguageService} from './language_service';
@@ -66,6 +67,7 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
   private readonly fileVersions = new Map<string, string>();
 
   private lastProgram: tss.Program|undefined = undefined;
+  private templateReferences: string[] = [];
   private analyzedModules: NgAnalyzedModules = {
     files: [],
     ngModuleByPipeOrDirective: new Map(),
@@ -151,6 +153,11 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
     return this.resolver.getReflector() as StaticReflector;
   }
 
+  getTemplateReferences(): string[] {
+    this.getAnalyzedModules();
+    return [...this.templateReferences];
+  }
+
   /**
    * Checks whether the program has changed and returns all analyzed modules.
    * If program has changed, invalidate all caches and update fileToComponent
@@ -164,6 +171,7 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
     }
 
     // Invalidate caches
+    this.templateReferences = [];
     this.fileToComponent.clear();
     this.collectedErrors.clear();
     this.resolver.clearCache();
@@ -194,6 +202,11 @@ export class TypeScriptServiceHost implements LanguageServiceHost {
               this.reflector.componentModuleUrl(directive.reference),
               metadata.template.templateUrl);
           this.fileToComponent.set(templateName, directive.reference);
+          if (this.tsLsHost.fileExists && this.tsLsHost.fileExists(templateName)) {
+            this.templateReferences.push(templateName);
+          } else if (!!this.tsLsHost.getScriptSnapshot(templateName)) {
+            this.templateReferences.push(templateName);
+          }
         }
       }
     }
